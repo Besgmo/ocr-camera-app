@@ -4,325 +4,416 @@ let captureBtn = document.getElementById('capture');
 let stream = null;
 let isProcessing = false;
 
-// Детекція iOS
-function isiOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+// Детекція iOS та версії
+function getIOSInfo() {
+    const userAgent = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    const isInAppBrowser = !isSafari && isIOS;
+    
+    let version = null;
+    if (isIOS) {
+        const match = userAgent.match(/OS (\d+)_(\d+)/);
+        if (match) {
+            version = parseFloat(match[1] + '.' + match[2]);
+        }
+    }
+    
+    return { isIOS, isSafari, isInAppBrowser, version };
 }
 
-// Запуск камери з адаптивними налаштуваннями для iOS
-async function startCamera() {
-    try {
-        console.log('Запуск камери...');
-        console.log('iOS device:', isiOS());
-        
-        // Спеціальні налаштування для iOS
-        const isIOSDevice = isiOS();
-        
-        const constraints = {
-            video: {
-                facingMode: { ideal: 'environment' }, // Задня камера для OCR
-                width: isIOSDevice ? { ideal: 1280, max: 1920 } : { ideal: 1920, min: 640 },
-                height: isIOSDevice ? { ideal: 720, max: 1080 } : { ideal: 1080, min: 480 },
-                frameRate: isIOSDevice ? { ideal: 15, max: 30 } : { ideal: 30 }
-            }
-        };
-        
-        // Для iOS встановлюємо додаткові атрибути відео
-        if (isIOSDevice) {
-            video.setAttribute('playsinline', 'true');
-            video.setAttribute('webkit-playsinline', 'true');
-            video.muted = true; // Важливо для iOS
-        }
-        
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        
-        // Чекаємо поки відео завантажиться
-        return new Promise((resolve, reject) => {
-            video.addEventListener('loadedmetadata', () => {
-                console.log('Реальні розміри відео:', video.videoWidth, 'x', video.videoHeight);
-                console.log('Показані розміри відео:', video.clientWidth, 'x', video.clientHeight);
-                
-                // Оновлюємо статус
-                if (typeof ocrProcessor !== 'undefined') {
-                    ocrProcessor.updateStatus('Готово до фото');
-                }
-                
-                console.log('Камера запущена успішно');
-                resolve();
-            });
-            
-            video.addEventListener('error', (error) => {
-                console.error('Помилка відео:', error);
-                reject(error);
-            });
-            
-            // Timeout для iOS
-            setTimeout(() => {
-                if (video.videoWidth === 0) {
-                    console.log('Timeout - пробуємо fallback');
-                    reject(new Error('Video timeout'));
-                }
-            }, 10000);
-        });
-        
-    } catch (error) {
-        console.error('Помилка камери:', error);
-        
-        // Fallback - спробуємо фронтальну камеру
+// Діагностика можливостей браузера
+async function checkBrowserCapabilities() {
+    const iosInfo = getIOSInfo();
+    console.log('=== ДІАГНОСТИКА БРАУЗЕРА ===');
+    console.log('User Agent:', navigator.userAgent);
+    console.log('iOS Info:', iosInfo);
+    console.log('HTTPS:', location.protocol === 'https:');
+    console.log('MediaDevices available:', !!navigator.mediaDevices);
+    console.log('getUserMedia available:', !!navigator.mediaDevices?.getUserMedia);
+    
+    // Перевіряємо доступні камери
+    if (navigator.mediaDevices?.enumerateDevices) {
         try {
-            console.log('Пробуємо фронтальну камеру...');
-            const fallbackConstraints = {
-                video: {
-                    facingMode: 'user',
-                    width: { ideal: 1280, min: 480 },
-                    height: { ideal: 720, min: 360 }
-                }
-            };
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            console.log('Available cameras:', videoDevices.length);
+            videoDevices.forEach((device, index) => {
+                console.log(`Camera ${index + 1}:`, device.label || `Camera ${index + 1}`, device.deviceId);
+            });
+        } catch (error) {
+            console.error('Cannot enumerate devices:', error);
+        }
+    }
+    
+    return iosInfo;
+}
+
+// Створення статус індикатора
+function createStatusIndicator() {
+    let statusEl = document.getElementById('camera-status');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'camera-status';
+        statusEl.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 1000;
+            display: none;
+        `;
+        document.body.appendChild(statusEl);
+    }
+    return statusEl;
+}
+
+// Оновлення статусу
+function updateStatus(message, type = 'info') {
+    const statusEl = createStatusIndicator();
+    statusEl.textContent = message;
+    statusEl.style.display = 'block';
+    
+    // Автоматично приховати через 5 секунд, крім помилок
+    if (type !== 'error') {
+        setTimeout(() => {
+            statusEl.style.display = 'none';
+        }, 5000);
+    }
+    
+    console.log(`Status (${type}):`, message);
+}
+
+// Запуск камери з прогресивними налаштуваннями
+async function startCamera() {
+    const iosInfo = await checkBrowserCapabilities();
+    
+    // Перевірка базових вимог
+    if (!navigator.mediaDevices?.getUserMedia) {
+        updateStatus('Браузер не підтримує доступ до камери', 'error');
+        return;
+    }
+    
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        updateStatus('Потрібен HTTPS для доступу до камери', 'error');
+        return;
+    }
+    
+    // Попередження для in-app браузерів
+    if (iosInfo.isInAppBrowser) {
+        updateStatus('Спробуйте відкрити в Safari для кращої роботи камери', 'warning');
+    }
+    
+    updateStatus('Запуск камери...', 'info');
+    
+    // Налаштування для різних спроб
+    const attempts = [
+        // Спроба 1: Висока якість для iPhone 14 Pro
+        {
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1920, max: 3840 },
+                height: { ideal: 1080, max: 2160 },
+                frameRate: { ideal: 30 }
+            }
+        },
+        // Спроба 2: Середня якість
+        {
+            video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 },
+                frameRate: { ideal: 24 }
+            }
+        },
+        // Спроба 3: Фронтальна камера
+        {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        },
+        // Спроба 4: Базові налаштування
+        {
+            video: true
+        }
+    ];
+    
+    for (let i = 0; i < attempts.length; i++) {
+        try {
+            updateStatus(`Спроба ${i + 1}/${attempts.length}...`, 'info');
+            console.log(`Attempt ${i + 1}:`, attempts[i]);
             
-            if (isiOS()) {
+            // Запит дозволу
+            stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
+            
+            // Налаштування відео для iOS
+            if (iosInfo.isIOS) {
                 video.setAttribute('playsinline', 'true');
                 video.setAttribute('webkit-playsinline', 'true');
                 video.muted = true;
+                video.autoplay = true;
             }
             
-            stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
             video.srcObject = stream;
-            console.log('Fallback камера запущена');
             
-            return new Promise((resolve) => {
+            // Чекаємо завантаження метаданих
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Video loading timeout'));
+                }, 15000);
+                
                 video.addEventListener('loadedmetadata', () => {
-                    if (typeof ocrProcessor !== 'undefined') {
-                        ocrProcessor.updateStatus('Готово до фото (фронтальна камера)');
-                    }
+                    clearTimeout(timeout);
                     resolve();
-                });
+                }, { once: true });
+                
+                video.addEventListener('error', (error) => {
+                    clearTimeout(timeout);
+                    reject(error);
+                }, { once: true });
             });
             
-        } catch (fallbackError) {
-            console.error('Fallback помилка:', fallbackError);
+            // Успіх!
+            const width = video.videoWidth;
+            const height = video.videoHeight;
             
-            // Останній fallback - будь-яка доступна камера
-            try {
-                console.log('Пробуємо будь-яку доступну камеру...');
-                const basicConstraints = {
-                    video: true
-                };
+            if (width > 0 && height > 0) {
+                const cameraType = attempts[i].video.facingMode === 'user' ? 'фронтальна' : 'задня';
+                updateStatus(`Камера готова! ${width}x${height} (${cameraType})`, 'success');
                 
-                stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
-                video.srcObject = stream;
+                console.log('=== КАМЕРА ЗАПУЩЕНА ===');
+                console.log('Розміри відео:', width, 'x', height);
+                console.log('Тип камери:', cameraType);
+                console.log('Спроба:', i + 1);
                 
-                if (typeof ocrProcessor !== 'undefined') {
-                    ocrProcessor.updateStatus('Камера запущена (базові налаштування)');
-                }
-                
-                console.log('Базова камера запущена');
-            } catch (basicError) {
-                console.error('Базова помилка камери:', basicError);
-                if (typeof ocrProcessor !== 'undefined') {
-                    ocrProcessor.updateStatus('Помилка доступу до камери', 'error');
-                }
-                
-                // Показуємо детальну помилку для діагностики
-                showCameraError(basicError);
+                return true;
+            }
+            
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
+            
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            // Показуємо специфічну помилку тільки на останній спробі
+            if (i === attempts.length - 1) {
+                showDetailedError(error);
             }
         }
     }
+    
+    updateStatus('Не вдалося запустити камеру', 'error');
+    return false;
 }
 
-// Показати детальну інформацію про помилку камери
-function showCameraError(error) {
-    let errorMessage = 'Помилка камери: ';
+// Детальна інформація про помилку
+function showDetailedError(error) {
+    let message = 'Помилка камери: ';
+    let solution = '';
     
     switch(error.name) {
         case 'NotAllowedError':
-            errorMessage += 'Доступ до камери заборонено. Перевірте налаштування браузера.';
+            message += 'Доступ заборонено';
+            solution = 'Дозвольте доступ до камери в налаштуваннях Safari:\n1. Настройки → Safari → Камера → Разрешить\n2. Оновіть сторінку';
             break;
         case 'NotFoundError':
-            errorMessage += 'Камера не знайдена на пристрої.';
+            message += 'Камера не знайдена';
+            solution = 'Перевірте, чи не використовується камера іншим додатком';
             break;
         case 'NotSupportedError':
-            errorMessage += 'Камера не підтримується цим браузером.';
+            message += 'Не підтримується';
+            solution = 'Спробуйте відкрити в Safari замість іншого браузера';
             break;
         case 'NotReadableError':
-            errorMessage += 'Камера зайнята іншим додатком.';
+            message += 'Камера недоступна';
+            solution = 'Закрийте інші додатки що використовують камеру та спробуйте знову';
             break;
         case 'OverconstrainedError':
-            errorMessage += 'Налаштування камери не підтримуються.';
+            message += 'Налаштування не підтримуються';
+            solution = 'Спробуйте перезавантажити сторінку';
             break;
         default:
-            errorMessage += error.message || 'Невідома помилка';
+            message += error.message || 'Невідома помилка';
+            solution = 'Спробуйте:\n1. Перезавантажити сторінку\n2. Відкрити в Safari\n3. Перезавантажити телефон';
     }
     
-    console.error(errorMessage);
-    alert(errorMessage + '\n\nСпробуйте:\n1. Оновити сторінку\n2. Дозволити доступ до камери\n3. Закрити інші додатки що використовують камеру');
+    updateStatus(message, 'error');
+    
+    // Показуємо детальне повідомлення
+    setTimeout(() => {
+        alert(message + '\n\n' + solution);
+    }, 1000);
 }
 
-// Захоплення фото та запуск OCR
+// Захоплення фото
 async function capturePhoto() {
     if (isProcessing) {
-        console.log('Обробка вже відбувається...');
+        updateStatus('Обробка вже відбувається...', 'warning');
         return;
     }
-
-    console.log('=== ЗАХОПЛЕННЯ ФОТО ===');
     
-    // Використовуємо реальні розміри відео для canvas
-    const realWidth = video.videoWidth;
-    const realHeight = video.videoHeight;
-    
-    if (realWidth === 0 || realHeight === 0) {
-        console.error('Відео ще не завантажилось');
-        if (typeof ocrProcessor !== 'undefined') {
-            ocrProcessor.updateStatus('Відео ще не готове', 'error');
-        }
+    if (!stream || video.videoWidth === 0) {
+        updateStatus('Камера не готова', 'error');
         return;
     }
     
     try {
         isProcessing = true;
         captureBtn.disabled = true;
+        updateStatus('Захоплення фото...', 'info');
         
-        // Встановлюємо розміри canvas відповідно до відео
-        canvas.width = realWidth;
-        canvas.height = realHeight;
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        
+        canvas.width = width;
+        canvas.height = height;
         
         const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, width, height);
         
-        // Малюємо кадр з відео на canvas
-        context.drawImage(video, 0, 0, realWidth, realHeight);
-        
-        console.log('=== ДЕТАЛЬНА ІНФОРМАЦІЯ ===');
-        console.log('Відео розміри (реальні):', realWidth, 'x', realHeight);
-        console.log('Canvas розміри:', canvas.width, 'x', canvas.height);
-        console.log('Мегапікселі:', (realWidth * realHeight / 1000000).toFixed(2), 'MP');
-        console.log('iOS device:', isiOS());
-        
-        // Покращення якості для iOS
-        if (isiOS()) {
-            // Додаткова обробка зображення для кращого OCR на iOS
-            const imageData = context.getImageData(0, 0, realWidth, realHeight);
-            const data = imageData.data;
-            
-            // Підвищуємо контрастність
-            for (let i = 0; i < data.length; i += 4) {
-                // Конвертуємо в градації сірого та підвищуємо контраст
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const enhanced = gray > 128 ? Math.min(255, gray * 1.2) : Math.max(0, gray * 0.8);
-                
-                data[i] = enhanced;     // R
-                data[i + 1] = enhanced; // G
-                data[i + 2] = enhanced; // B
-                // data[i + 3] залишаємо без змін (alpha)
-            }
-            
-            context.putImageData(imageData, 0, 0);
-            console.log('Застосовано покращення зображення для iOS');
+        // Покращення зображення для кращого OCR
+        const iosInfo = getIOSInfo();
+        if (iosInfo.isIOS) {
+            enhanceImageForOCR(context, width, height);
         }
         
-        // Запускаємо OCR обробку
+        updateStatus('Обробка зображення...', 'info');
+        
+        // Запуск OCR
         if (typeof ocrProcessor !== 'undefined') {
             await ocrProcessor.processImage(canvas);
         } else {
-            console.error('OCR процесор не доступний');
+            updateStatus('OCR недоступний', 'error');
         }
         
-        // Копіюємо в буфер для додаткового тестування (тільки якщо підтримується)
-        if (navigator.clipboard && navigator.clipboard.write) {
+        // Копіювання в буфер (якщо підтримується)
+        if (navigator.clipboard?.write) {
             copyToClipboard();
         }
         
-        console.log('=== ФОТО ОБРОБЛЕНО ===');
-        
     } catch (error) {
-        console.error('Помилка захоплення/обробки:', error);
-        if (typeof ocrProcessor !== 'undefined') {
-            ocrProcessor.updateStatus('Помилка обробки фото', 'error');
-        }
+        console.error('Capture error:', error);
+        updateStatus('Помилка обробки фото', 'error');
     } finally {
         isProcessing = false;
         captureBtn.disabled = false;
     }
 }
 
-// Копіювання в буфер (додаткова функція)
-function copyToClipboard() {
-    if (navigator.clipboard && navigator.clipboard.write) {
-        canvas.toBlob(async (blob) => {
-            try {
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                console.log('Зображення скопійовано в буфер! Розмір:', blob.size, 'байт');
-            } catch (err) {
-                console.log('Не вдалося скопіювати в буфер:', err);
-            }
-        });
+// Покращення зображення для OCR
+function enhanceImageForOCR(context, width, height) {
+    const imageData = context.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+        // Конвертація в відтінки сірого з підвищенням контрасту
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        const enhanced = gray > 128 ? Math.min(255, gray * 1.3) : Math.max(0, gray * 0.7);
+        
+        data[i] = enhanced;     // R
+        data[i + 1] = enhanced; // G
+        data[i + 2] = enhanced; // B
     }
+    
+    context.putImageData(imageData, 0, 0);
+    console.log('Image enhanced for OCR');
+}
+
+// Копіювання в буфер
+function copyToClipboard() {
+    canvas.toBlob(async (blob) => {
+        try {
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+            console.log('Image copied to clipboard');
+        } catch (err) {
+            console.log('Clipboard not available:', err);
+        }
+    });
 }
 
 // Зупинка камери
 function stopCamera() {
     if (stream) {
-        stream.getTracks().forEach(track => {
-            track.stop();
-            console.log('Camera track stopped:', track.kind);
-        });
+        stream.getTracks().forEach(track => track.stop());
         stream = null;
         video.srcObject = null;
-        console.log('Камера зупинена');
+        updateStatus('Камера зупинена', 'info');
     }
 }
 
-// Обробник видимості сторінки для економії батареї
+// Обробники подій
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        console.log('Сторінка прихована - зупиняємо камеру');
+        console.log('Page hidden - stopping camera');
         stopCamera();
     } else {
-        console.log('Сторінка відновлена - запускаємо камеру');
-        setTimeout(() => {
-            startCamera();
-        }, 500);
+        console.log('Page visible - restarting camera');
+        setTimeout(startCamera, 500);
     }
 });
 
-// Ініціалізація при завантаженні сторінки
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Ініціалізація додатку...');
-    console.log('User Agent:', navigator.userAgent);
-    console.log('iOS device:', isiOS());
-    
-    // Додаємо затримку для iOS
-    const initDelay = isiOS() ? 1000 : 100;
-    
+window.addEventListener('orientationchange', () => {
+    console.log('Orientation changed');
     setTimeout(() => {
-        startCamera();
-    }, initDelay);
+        if (stream) {
+            stopCamera();
+            setTimeout(startCamera, 1000);
+        }
+    }, 500);
+});
+
+// Ініціалізація
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('=== ІНІЦІАЛІЗАЦІЯ ДОДАТКУ ===');
     
-    // Додаємо обробник кнопки
+    // Створюємо кнопку діагностики
+    const diagButton = document.createElement('button');
+    diagButton.textContent = 'Діагностика';
+    diagButton.style.cssText = `
+        position: fixed;
+        top: 140px;
+        right: 24px;
+        background: rgba(255,255,255,0.9);
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 12px;
+        z-index: 1000;
+    `;
+    diagButton.onclick = checkBrowserCapabilities;
+    document.body.appendChild(diagButton);
+    
+    // Затримка для iPhone
+    setTimeout(async () => {
+        await startCamera();
+    }, 1000);
+    
+    // Обробник кнопки фото
     if (captureBtn) {
         captureBtn.addEventListener('click', capturePhoto);
     }
     
-    // Додаємо можливість очищення результатів
+    // Клавіатурні скорочення
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && typeof ocrProcessor !== 'undefined') {
             ocrProcessor.reset();
         }
+        if (e.key === ' ') {
+            e.preventDefault();
+            capturePhoto();
+        }
     });
     
-    // Додаємо обробник орієнтації для мобільних
-    window.addEventListener('orientationchange', () => {
-        console.log('Зміна орієнтації detected');
-        setTimeout(() => {
-            if (stream) {
-                console.log('Перезапуск камери після зміни орієнтації');
-                stopCamera();
-                setTimeout(startCamera, 500);
-            }
-        }, 500);
-    });
-    
-    console.log('Додаток готовий!');
+    console.log('App initialized');
 });
