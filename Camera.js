@@ -3,29 +3,74 @@ let canvas = document.getElementById('canvas');
 let captureBtn = document.getElementById('capture');
 let stream = null;
 let isProcessing = false;
-let hasPermission = false;
 
-// Функція для показу статусу
-function showStatus(message, type = 'info') {
+// Детальна діагностика системи
+async function runDiagnostics() {
+    const results = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        protocol: location.protocol,
+        hostname: location.hostname,
+        mediaDevicesSupport: !!navigator.mediaDevices,
+        getUserMediaSupport: !!navigator.mediaDevices?.getUserMedia,
+        permissions: null,
+        devices: [],
+        errors: []
+    };
+    
+    console.log('=== ПОВНА ДІАГНОСТИКА ===');
+    
+    // Перевірка дозволів
+    if (navigator.permissions) {
+        try {
+            const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+            results.permissions = permissionStatus.state;
+            console.log('Camera permission:', permissionStatus.state);
+        } catch (error) {
+            results.errors.push('Permission API error: ' + error.message);
+        }
+    }
+    
+    // Перевірка доступних пристроїв
+    if (navigator.mediaDevices?.enumerateDevices) {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            results.devices = devices.filter(d => d.kind === 'videoinput').map(d => ({
+                deviceId: d.deviceId,
+                label: d.label || 'Camera',
+                groupId: d.groupId
+            }));
+            console.log('Available cameras:', results.devices);
+        } catch (error) {
+            results.errors.push('Enumerate devices error: ' + error.message);
+        }
+    }
+    
+    console.log('Diagnostic results:', results);
+    return results;
+}
+
+// Показ статусу
+function showStatus(message, type = 'info', persistent = false) {
     console.log(`[${type.toUpperCase()}] ${message}`);
     
-    let statusEl = document.getElementById('camera-status');
+    let statusEl = document.getElementById('status-display');
     if (!statusEl) {
         statusEl = document.createElement('div');
-        statusEl.id = 'camera-status';
+        statusEl.id = 'status-display';
         statusEl.style.cssText = `
             position: fixed;
             top: 80px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px;
+            right: 20px;
             background: ${type === 'error' ? '#ff4444' : type === 'success' ? '#44ff44' : '#4444ff'};
             color: white;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 12px 20px;
+            border-radius: 8px;
             font-size: 14px;
             z-index: 1000;
-            max-width: 80%;
             text-align: center;
+            word-break: break-word;
         `;
         document.body.appendChild(statusEl);
     }
@@ -33,199 +78,178 @@ function showStatus(message, type = 'info') {
     statusEl.textContent = message;
     statusEl.style.background = type === 'error' ? '#ff4444' : type === 'success' ? '#44ff44' : '#4444ff';
     
-    if (type !== 'error') {
+    if (!persistent && type !== 'error') {
         setTimeout(() => {
             if (statusEl.parentNode) {
-                statusEl.remove();
+                statusEl.style.opacity = '0';
+                setTimeout(() => statusEl.remove(), 300);
             }
-        }, 3000);
+        }, 4000);
     }
 }
 
-// Створення кнопки запиту дозволу
-function createPermissionButton() {
-    const permissionBtn = document.createElement('button');
-    permissionBtn.id = 'permission-btn';
-    permissionBtn.textContent = 'Дозволити доступ до камери';
-    permissionBtn.style.cssText = `
+// Створення інтерфейсу діагностики
+function createDiagnosticInterface() {
+    const container = document.createElement('div');
+    container.id = 'diagnostic-panel';
+    container.style.cssText = `
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: #01F55F;
-        color: black;
-        border: none;
-        border-radius: 25px;
-        padding: 16px 32px;
-        font-size: 18px;
-        font-weight: 600;
-        cursor: pointer;
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         z-index: 1001;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
     `;
     
-    permissionBtn.onclick = requestCameraPermission;
-    document.body.appendChild(permissionBtn);
+    container.innerHTML = `
+        <h3 style="margin: 0 0 16px 0; color: #333;">Камера не працює</h3>
+        <div id="diagnostic-info" style="font-size: 14px; color: #666; margin-bottom: 20px;">
+            Виконується діагностика...
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button id="try-permission" class="btn-diag btn-primary">Запросити дозвіл</button>
+            <button id="try-basic" class="btn-diag btn-secondary">Базова камера</button>
+            <button id="show-help" class="btn-diag btn-secondary">Допомога</button>
+            <button id="close-diag" class="btn-diag btn-secondary">Закрити</button>
+        </div>
+    `;
     
-    return permissionBtn;
+    // Стилі для кнопок
+    const style = document.createElement('style');
+    style.textContent = `
+        .btn-diag {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary { background: #01F55F; color: black; }
+        .btn-secondary { background: #ddd; color: #333; }
+        .btn-diag:hover { opacity: 0.8; }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(container);
+    return container;
 }
 
-// Запит дозволу до камери
-async function requestCameraPermission() {
-    const permissionBtn = document.getElementById('permission-btn');
-    if (permissionBtn) {
-        permissionBtn.textContent = 'Запитуємо дозвіл...';
-        permissionBtn.disabled = true;
-    }
-    
-    showStatus('Запитуємо дозвіл на доступ до камери...', 'info');
+// Спроба отримання дозволу
+async function requestBasicPermission() {
+    showStatus('Запитуємо базовий дозвіл до камери...', 'info');
     
     try {
-        // Спочатку запитуємо базовий доступ
+        // Найпростіший запит
         const testStream = await navigator.mediaDevices.getUserMedia({ 
             video: true,
             audio: false 
         });
         
-        // Одразу зупиняємо тестовий потік
+        console.log('Permission granted, test stream:', testStream);
+        
+        // Зупиняємо тестовий потік
         testStream.getTracks().forEach(track => track.stop());
         
-        hasPermission = true;
-        showStatus('Дозвіл отримано!', 'success');
-        
-        // Прибираємо кнопку дозволу
-        if (permissionBtn) {
-            permissionBtn.remove();
-        }
+        showStatus('Дозвіл отримано! Запускаємо камеру...', 'success');
         
         // Запускаємо камеру
-        setTimeout(() => {
-            startCamera();
-        }, 500);
+        setTimeout(() => startActualCamera(), 1000);
+        
+        return true;
         
     } catch (error) {
-        console.error('Permission denied:', error);
-        hasPermission = false;
+        console.error('Permission request failed:', error);
+        showStatus(`Дозвіл відхилено: ${error.name}`, 'error', true);
         
-        let errorMessage = 'Доступ до камери відхилено';
-        let instructions = 'Перевірте налаштування браузера';
-        
-        switch (error.name) {
-            case 'NotAllowedError':
-                errorMessage = 'Доступ до камери заборонено';
-                instructions = '1. Натисніть на іконку замка в адресному рядку\n2. Дозвольте доступ до камери\n3. Оновіть сторінку';
-                break;
-            case 'NotFoundError':
-                errorMessage = 'Камера не знайдена';
-                instructions = 'Перевірте підключення камери';
-                break;
-            case 'NotSupportedError':
-                errorMessage = 'Камера не підтримується';
-                instructions = 'Спробуйте відкрити в Safari';
-                break;
-        }
-        
-        showStatus(errorMessage, 'error');
-        
-        if (permissionBtn) {
-            permissionBtn.textContent = 'Спробувати ще раз';
-            permissionBtn.disabled = false;
-        }
-        
-        // Показуємо детальні інструкції
-        setTimeout(() => {
-            alert(`${errorMessage}\n\n${instructions}`);
-        }, 1000);
+        showPermissionHelp(error);
+        return false;
     }
 }
 
-// Запуск камери (після отримання дозволу)
-async function startCamera() {
-    if (!hasPermission) {
-        showStatus('Спочатку потрібен дозвіл до камери', 'error');
-        return false;
-    }
-    
+// Запуск реальної камери
+async function startActualCamera() {
     showStatus('Запускаємо камеру...', 'info');
     
-    // Налаштування відео ПЕРЕД getUserMedia
-    video.setAttribute('autoplay', 'true');
+    // Базові налаштування відео
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    
+    // iOS специфічні атрибути
     video.setAttribute('playsinline', 'true');
     video.setAttribute('webkit-playsinline', 'true');
-    video.muted = true;
     
-    // Спроби з різними налаштуваннями
-    const attempts = [
+    // Різні варіанти налаштувань
+    const configurations = [
+        // Висока якість
         {
             video: {
                 facingMode: 'environment',
                 width: { ideal: 1280, max: 1920 },
-                height: { ideal: 720, max: 1080 },
-                frameRate: { ideal: 24, max: 30 }
+                height: { ideal: 720, max: 1080 }
             }
         },
+        // Середня якість
         {
             video: {
-                facingMode: 'user',
                 width: { ideal: 1280 },
                 height: { ideal: 720 }
             }
         },
+        // Фронтальна камера
+        {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }
+        },
+        // Мінімальні налаштування
         {
             video: true
         }
     ];
     
-    for (let i = 0; i < attempts.length; i++) {
+    for (let i = 0; i < configurations.length; i++) {
         try {
-            showStatus(`Спроба ${i + 1}/${attempts.length}...`, 'info');
+            showStatus(`Спроба ${i + 1}/${configurations.length}...`, 'info');
             
-            stream = await navigator.mediaDevices.getUserMedia(attempts[i]);
+            stream = await navigator.mediaDevices.getUserMedia(configurations[i]);
             video.srcObject = stream;
             
             // Чекаємо готовність відео
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Video timeout'));
-                }, 10000);
-                
-                const onReady = () => {
-                    if (video.videoWidth > 0 && video.videoHeight > 0) {
-                        clearTimeout(timeout);
-                        resolve();
-                    }
-                };
-                
-                video.addEventListener('loadedmetadata', onReady, { once: true });
-                video.addEventListener('loadeddata', onReady, { once: true });
-                
-                // Примусовий запуск відтворення
-                video.play().catch(console.warn);
-                
-                // Перевіряємо стан відразу
-                if (video.videoWidth > 0) {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            });
+            await waitForVideo();
             
-            // Успіх!
             const width = video.videoWidth;
             const height = video.videoHeight;
-            const cameraType = attempts[i].video?.facingMode === 'user' ? 'фронтальна' : 'задня';
             
-            showStatus(`Камера готова! ${width}x${height} (${cameraType})`, 'success');
-            console.log('Camera started:', { width, height, attempt: i + 1 });
-            
-            // Активуємо кнопку фото
-            if (captureBtn) {
-                captureBtn.disabled = false;
+            if (width > 0 && height > 0) {
+                showStatus(`Камера працює! ${width}x${height}`, 'success');
+                
+                // Активуємо кнопку
+                if (captureBtn) {
+                    captureBtn.disabled = false;
+                    captureBtn.textContent = 'Зробити фото';
+                }
+                
+                // Прибираємо діагностичну панель
+                const diagPanel = document.getElementById('diagnostic-panel');
+                if (diagPanel) {
+                    diagPanel.remove();
+                }
+                
+                return true;
             }
             
-            return true;
-            
         } catch (error) {
-            console.error(`Attempt ${i + 1} failed:`, error);
+            console.error(`Configuration ${i + 1} failed:`, error);
             
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -234,18 +258,84 @@ async function startCamera() {
         }
     }
     
-    showStatus('Не вдалося запустити камеру', 'error');
+    showStatus('Всі спроби запуску камери невдалі', 'error', true);
     return false;
+}
+
+// Очікування готовності відео
+function waitForVideo() {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('Video loading timeout'));
+        }, 10000);
+        
+        const checkReady = () => {
+            if (video.readyState >= 2 && video.videoWidth > 0) {
+                clearTimeout(timeout);
+                resolve();
+            }
+        };
+        
+        video.addEventListener('loadedmetadata', checkReady);
+        video.addEventListener('loadeddata', checkReady);
+        video.addEventListener('canplay', checkReady);
+        
+        // Запускаємо відтворення
+        video.play().catch(console.warn);
+        
+        // Перевіряємо стан відразу
+        checkReady();
+    });
+}
+
+// Показ допомоги при помилках дозволу
+function showPermissionHelp(error) {
+    let help = 'Інструкції для вирішення проблеми:\n\n';
+    
+    switch (error.name) {
+        case 'NotAllowedError':
+            help += `CHROME:
+1. Клікніть на іконку замка/камери в адресному рядку
+2. Встановіть "Камера" в "Дозволити"
+3. Оновіть сторінку
+
+SAFARI (iPhone):
+1. Налаштування → Safari → Камера → Дозволити для всіх сайтів
+2. Або натисніть "Настройки для цього веб-сайта" → Камера → Дозволити
+
+ІНШІ БРАУЗЕРИ:
+1. Перевірте налаштування приватності
+2. Спробуйте відкрити в іншому браузері`;
+            break;
+            
+        case 'NotFoundError':
+            help += `Камера не знайдена:
+1. Перевірте підключення камери (для ПК)
+2. Закрийте інші додатки що можуть використовувати камеру
+3. Перезавантажте браузер/пристрій`;
+            break;
+            
+        case 'NotSupportedError':
+            help += `Не підтримується:
+1. Оновіть браузер до останньої версії
+2. Спробуйте інший браузер (Chrome, Safari, Firefox)
+3. Перевірте що сайт відкритий через HTTPS`;
+            break;
+            
+        default:
+            help += `Загальні рішення:
+1. Оновіть браузер
+2. Перевірте що сайт відкритий через HTTPS
+3. Спробуйте інший браузер
+4. Перезавантажте пристрій`;
+    }
+    
+    setTimeout(() => alert(help), 1000);
 }
 
 // Захоплення фото
 async function capturePhoto() {
-    if (isProcessing) {
-        showStatus('Обробка триває...', 'warning');
-        return;
-    }
-    
-    if (!stream || !video.videoWidth) {
+    if (isProcessing || !stream || !video.videoWidth) {
         showStatus('Камера не готова', 'error');
         return;
     }
@@ -253,8 +343,7 @@ async function capturePhoto() {
     try {
         isProcessing = true;
         captureBtn.disabled = true;
-        
-        showStatus('Захоплення фото...', 'info');
+        captureBtn.textContent = 'Обробка...';
         
         const width = video.videoWidth;
         const height = video.videoHeight;
@@ -265,82 +354,67 @@ async function capturePhoto() {
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, width, height);
         
-        console.log('Photo captured:', { width, height });
+        showStatus('Фото захоплено! Запускаємо OCR...', 'info');
         
-        // Запуск OCR
+        // OCR обробка
         if (typeof ocrProcessor !== 'undefined') {
-            showStatus('Розпізнавання тексту...', 'info');
             await ocrProcessor.processImage(canvas);
         } else {
-            showStatus('OCR не доступний', 'error');
+            showStatus('OCR модуль недоступний', 'error');
         }
         
     } catch (error) {
         console.error('Capture error:', error);
-        showStatus('Помилка захоплення', 'error');
+        showStatus('Помилка захоплення фото', 'error');
     } finally {
         isProcessing = false;
-        if (captureBtn) {
-            captureBtn.disabled = false;
-        }
+        captureBtn.disabled = false;
+        captureBtn.textContent = 'Зробити фото';
     }
-}
-
-// Зупинка камери
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-        video.srcObject = null;
-        console.log('Camera stopped');
-    }
-}
-
-// Перевірка підтримки
-function checkSupport() {
-    const checks = {
-        mediaDevices: !!navigator.mediaDevices,
-        getUserMedia: !!navigator.mediaDevices?.getUserMedia,
-        https: location.protocol === 'https:' || location.hostname === 'localhost',
-        safari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
-    };
-    
-    console.log('Support check:', checks);
-    
-    if (!checks.mediaDevices || !checks.getUserMedia) {
-        showStatus('Браузер не підтримує доступ до камери', 'error');
-        return false;
-    }
-    
-    if (!checks.https) {
-        showStatus('Потрібен HTTPS для роботи камери', 'error');
-        return false;
-    }
-    
-    return true;
 }
 
 // Ініціалізація
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== APP INITIALIZATION ===');
-    console.log('User Agent:', navigator.userAgent);
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('=== УНІВЕРСАЛЬНА ІНІЦІАЛІЗАЦІЯ ===');
     
-    // Перевіряємо підтримку
-    if (!checkSupport()) {
-        return;
-    }
-    
-    // Блокуємо кнопку фото до запуску камери
+    // Блокуємо кнопку фото
     if (captureBtn) {
         captureBtn.disabled = true;
+        captureBtn.textContent = 'Камера не готова';
         captureBtn.addEventListener('click', capturePhoto);
     }
     
-    // Створюємо кнопку запиту дозволу
-    createPermissionButton();
+    // Запускаємо діагностику
+    const diagnostics = await runDiagnostics();
     
-    // Показуємо інструкції
-    showStatus('Натисніть кнопку для доступу до камери', 'info');
+    // Перевіряємо базову підтримку
+    if (!diagnostics.mediaDevicesSupport || !diagnostics.getUserMediaSupport) {
+        showStatus('Браузер не підтримує доступ до камери', 'error', true);
+        return;
+    }
+    
+    if (diagnostics.protocol !== 'https:' && diagnostics.hostname !== 'localhost') {
+        showStatus('Потрібен HTTPS для роботи камери', 'error', true);
+        return;
+    }
+    
+    // Показуємо діагностичну панель
+    const diagPanel = createDiagnosticInterface();
+    
+    // Заповнюємо інформацію
+    const infoEl = document.getElementById('diagnostic-info');
+    infoEl.innerHTML = `
+        <strong>Браузер:</strong> ${navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Safari') ? 'Safari' : 'Інший'}<br>
+        <strong>Протокол:</strong> ${diagnostics.protocol}<br>
+        <strong>Дозвіл камери:</strong> ${diagnostics.permissions || 'Невідомо'}<br>
+        <strong>Знайдено камер:</strong> ${diagnostics.devices.length}
+    `;
+    
+    // Обробники кнопок
+    document.getElementById('try-permission').onclick = requestBasicPermission;
+    document.getElementById('try-basic').onclick = () => startActualCamera();
+    document.getElementById('show-help').onclick = () => showPermissionHelp({ name: 'NotAllowedError' });
+    document.getElementById('close-diag').onclick = () => diagPanel.remove();
     
     // Клавіатурні скорочення
     document.addEventListener('keydown', (e) => {
@@ -348,25 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             capturePhoto();
         }
-        if (e.key === 'Escape') {
-            if (typeof ocrProcessor !== 'undefined') {
-                ocrProcessor.reset();
-            }
-        }
     });
     
-    console.log('App ready - waiting for permission');
-});
-
-// Обробка видимості сторінки
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        console.log('Page hidden');
-    } else {
-        console.log('Page visible');
-        // Перевіряємо чи камера все ще працює
-        if (hasPermission && (!stream || video.videoWidth === 0)) {
-            setTimeout(startCamera, 500);
-        }
-    }
+    console.log('Initialization complete - diagnostic panel shown');
 });
