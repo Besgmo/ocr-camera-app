@@ -2,7 +2,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +16,7 @@
     </button>
     
     <!-- Відео на весь екран -->
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay playsinline webkit-playsinline muted></video>
     
     <!-- Кнопка фото -->
     <button id="capture" class="btn btn-primary camera-capture">Зробити фото</button>
