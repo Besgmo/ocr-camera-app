@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Словник - OCR App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Sticky хедер -->
+    <div id="dictionary-header" class="dictionary-header">
+        <div class="header-left">
+            <img src="icons/fi_book.svg" alt="Dictionary" width="24" height="24">
+            <span id="words-count">0 words</span>
+        </div>
+        <div class="header-right">
+            <button class="btn-icon btn-square" id="settings-btn">
+                <img src="icons/Settings.svg" alt="Settings" width="24" height="24">
+            </button>
+        </div>
+    </div>
+    
+    <!-- Контент словника -->
+    <div id="dictionary-content" class="dictionary-content">
+        <div id="translation-status" class="translation-status" style="display: none;"></div>
+        <div class="words-list" id="words-list"></div>
+    </div>
+    
+    <!-- Кнопка Grab Words -->
+    <button id="grab-words" class="btn btn-primary dictionary-grab-words" onclick="window.location.href='index.html'">
+        Grab words
+    </button>
+    
+    <script src="database.js"></script>
+    <script src="flashcards.js"></script>
+    <script src="utils.js"></script>
+</body>
+</html> 
