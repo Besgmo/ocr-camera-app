@@ -4,12 +4,34 @@ let cameraInput = document.getElementById('camera-input');
 let imagePreview = document.getElementById('image-preview');
 let isProcessing = false;
 
-// Функція оновлення статусу
+// Функція оновлення статусу - використовуємо існуючі класи
 function updateStatus(message, type = 'default') {
     const statusEl = document.getElementById('status');
     if (statusEl) {
         statusEl.textContent = message;
-        statusEl.className = `status ${type}`;
+        
+        // Використовуємо існуючі класи замість нових
+        if (type === 'processing') {
+            statusEl.className = 'word-item';
+            statusEl.style.background = 'var(--dark)';
+            statusEl.style.color = 'var(--white)';
+            statusEl.style.animation = 'pulse 1.5s infinite';
+        } else if (type === 'success') {
+            statusEl.className = 'word-item';
+            statusEl.style.background = 'var(--accent)';
+            statusEl.style.color = 'var(--black)';
+            statusEl.style.animation = 'none';
+        } else if (type === 'error') {
+            statusEl.className = 'word-item';
+            statusEl.style.background = '#ff4444';
+            statusEl.style.color = 'var(--white)';
+            statusEl.style.animation = 'none';
+        } else {
+            statusEl.className = 'word-item';
+            statusEl.style.background = '';
+            statusEl.style.color = '';
+            statusEl.style.animation = 'none';
+        }
     }
     console.log(`Status (${type}):`, message);
 }
