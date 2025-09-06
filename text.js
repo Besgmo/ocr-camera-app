@@ -33,14 +33,14 @@ class TextProcessor {
 
         // Кнопка "Назад"
         if (this.popupBackBtn) {
-            this.popupBackBtn.addEventListener('click', () => this.closeAndGoToWords());
+            this.popupBackBtn.addEventListener('click', () => this.closePopup());
         }
 
         // Закриття по кліку на overlay
         if (this.popupEl) {
             this.popupEl.addEventListener('click', (e) => {
                 if (e.target === this.popupEl) {
-                    this.closeAndGoToWords();
+                    this.closePopup();
                 }
             });
         }
@@ -48,7 +48,7 @@ class TextProcessor {
         // Закриття по Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.popupEl && this.popupEl.style.display !== 'none') {
-                this.closeAndGoToWords();
+                this.closePopup();
             }
         });
         
@@ -212,8 +212,13 @@ class TextProcessor {
             
             this.showSuccessMessage(message || 'Слова оброблено');
             
-            // Закриваємо попап і переходимо до словника
-            this.closeAndGoToWords();
+            // Закриваємо попап і залишаємось на сторінці
+            this.closePopup();
+            
+            // Оновлюємо відображення словника
+            if (typeof flashcardsManager !== 'undefined') {
+                flashcardsManager.refresh();
+            }
             
             // Автоматично перекладаємо нові слова в фоновому режимі
             if (added > 0) {
@@ -226,14 +231,19 @@ class TextProcessor {
         }
     }
 
-    closeAndGoToWords() {
-        // Закриваємо попап
+    closePopup() {
+        // Просто закриваємо попап без перенаправлення
         this.hidePopup();
         
-        // Переходимо до словника через 300мс для плавності
-        setTimeout(() => {
-            window.location.href = 'words.html';
-        }, 300);
+        // Скидаємо OCR статус якщо є
+        if (typeof ocrProcessor !== 'undefined') {
+            ocrProcessor.reset();
+        }
+        
+        // Скидаємо camera-words статус якщо є
+        if (typeof cameraWordsManager !== 'undefined') {
+            cameraWordsManager.reset();
+        }
     }
 
     async backgroundTranslateNewWords(newWords) {
@@ -256,6 +266,11 @@ class TextProcessor {
                         });
                         
                         console.log(`Фоновий переклад завершено: ${word} -> ${translation}`);
+                        
+                        // Оновлюємо відображення словника після кожного перекладу
+                        if (typeof flashcardsManager !== 'undefined') {
+                            flashcardsManager.refresh();
+                        }
                     }
                     
                 } catch (error) {
@@ -316,21 +331,17 @@ class TextProcessor {
 
     showSuccessMessage(message) {
         // Створюємо тимчасове повідомлення
-        const successMsg = document.createElement('div');
-        successMsg.className = 'success-message';
-        successMsg.textContent = message;
-        successMsg.style.position = 'fixed';
-        successMsg.style.top = '20px';
-        successMsg.style.left = '50%';
-        successMsg.style.transform = 'translateX(-50%)';
-        successMsg.style.zIndex = '1001';
+        const messageEl = document.createElement('div');
+        messageEl.className = 'notification';
+        messageEl.textContent = message;
         
-        document.body.appendChild(successMsg);
+        document.body.appendChild(messageEl);
         
         // Видаляємо через 3 секунди
         setTimeout(() => {
-            if (successMsg.parentNode) {
-                successMsg.remove();
+            if (messageEl.parentNode) {
+                messageEl.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => messageEl.remove(), 300);
             }
         }, 3000);
         
