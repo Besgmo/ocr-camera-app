@@ -6,17 +6,24 @@
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="camera-page">
+<body class="photo-upload-page">
     <!-- Верхня кнопка -->
     <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Відео на весь екран -->
-    <video id="video" autoplay playsinline></video>
+    <!-- Головна область для завантаження фото -->
+    <div id="upload-area" class="upload-area">
+        <div class="upload-content">
+            <div class="upload-icon">📷</div>
+            <h2>Додати фото для OCR</h2>
+            <p>Виберіть фото з галереї або зробіть нове фото</p>
+            <div id="status" class="status">Готово до вибору фото</div>
+        </div>
+    </div>
     
-    <!-- Кнопка фото -->
-    <button id="capture" class="btn btn-primary camera-capture">Зробити фото</button>
+    <!-- Кнопка додавання фото -->
+    <button id="capture" class="btn btn-primary camera-capture">Додати фото</button>
     
     <canvas id="canvas"></canvas>
     
@@ -28,7 +35,7 @@
             </div>
             <div class="popup-body">
                 <div id="popup-word-chips" class="word-chips"></div>
-                <div class="popup-controls">
+                <div class="popup-actions">
                     <button id="popup-save" class="btn btn-primary btn-full" disabled>Зберегти</button>
                     <button id="popup-back" class="btn btn-secondary btn-full">Назад</button>
                 </div>
@@ -40,10 +47,9 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <!-- Наші скрипти -->
-    <script src="Сamera.js"></script>
+    <script src="camera.js"></script>
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="database.js"></script>
 </body>
 </html>
-
