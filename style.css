@@ -135,7 +135,7 @@ body {
     min-width: auto;
 }
 
-/* ========== НОТІФІКАЦІЇ ========== */
+/* ========== УНІФІКОВАНІ НОТИФІКАЦІЇ ========== */
 
 .notification {
     position: fixed;
@@ -151,10 +151,16 @@ body {
     z-index: 1001;
     text-align: center;
     animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .notification.error {
     background: #ff4444;
+    color: var(--white);
+}
+
+.notification.success {
+    background: var(--black);
     color: var(--white);
 }
 
@@ -191,12 +197,15 @@ body {
     bottom: 120px;
     left: var(--space-lg);
     right: var(--space-lg);
-    background: var(--dark);
+    background: var(--black);
     color: var(--white);
     padding: var(--space);
     border-radius: var(--radius);
     z-index: 90;
     text-align: center;
+    font-size: var(--font-16);
+    font-weight: var(--font-semibold);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .ocr-status.processing {
@@ -209,7 +218,7 @@ body {
     color: var(--white);
 }
 
-/* ========== ПОПАП ========== */
+/* ========== УНІФІКОВАНІ ПОПАПИ ========== */
 
 .popup-overlay {
     position: fixed;
@@ -217,50 +226,126 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    padding: var(--space-lg);
+    padding: 0;
 }
 
 .popup-content {
     background: var(--white);
-    border-radius: var(--radius);
-    max-width: 90vw;
-    max-height: 80vh;
-    width: var(--popup-width);
+    border-radius: var(--space-lg) var(--space-lg) 0 0;
+    width: 100%;
+    max-height: 85vh;
     overflow: hidden;
-    animation: popupSlideIn var(--transition);
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .popup-header {
     padding: var(--space-lg);
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    background: var(--shine-gray);
+    background: var(--white);
+    border-bottom: 1px solid var(--gray);
 }
 
 .popup-header h3 {
     margin: 0;
     color: var(--black);
-    font-size: var(--font-18);
+    font-size: var(--font-24);
     font-weight: var(--font-semibold);
+    text-align: center;
 }
 
 .popup-body {
     padding: var(--space-lg);
-    max-height: 60vh;
+    max-height: 70vh;
     overflow-y: auto;
 }
 
 .popup-actions {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space);
     margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--gray);
+}
+
+/* ========== SETTINGS MENU СТИЛІ ========== */
+
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1001;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.settings-menu {
+    background: var(--white);
+    border-radius: var(--space-lg) var(--space-lg) 0 0;
+    width: 100%;
+    padding: var(--space-lg);
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.settings-menu p {
+    margin: 0 0 var(--space-lg) 0;
+    font-size: var(--font-16);
+    color: var(--dark);
+    text-align: center;
+    line-height: 1.4;
+}
+
+.settings-option {
+    width: 100%;
+    padding: var(--space-lg);
+    background: var(--shine-gray);
+    border: none;
+    border-radius: var(--radius);
+    font-size: var(--font-18);
+    font-weight: var(--font-semibold);
+    color: var(--black);
+    margin-bottom: var(--space);
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+}
+
+.settings-option:hover {
+    transform: scale(0.98);
+    background: var(--gray);
+}
+
+.settings-option:last-child {
+    background: var(--gray);
+    color: var(--dark);
+    margin-bottom: 0;
+}
+
+.settings-option.danger {
+    color: #ff4444;
+}
+
+.settings-option.import {
+    background: var(--accent);
+    color: var(--black);
+}
+
+.settings-option.import:hover {
+    background: var(--black);
+    color: var(--white);
 }
 
 /* ========== ЧІПСИ СЛІВ ========== */
@@ -271,7 +356,7 @@ body {
     gap: var(--space-sm);
     margin-bottom: var(--space-lg);
     min-height: 60px;
-    padding: var(--space-sm);
+    padding: var(--space-lg);
     background: var(--shine-gray);
     border-radius: var(--radius);
 }
@@ -288,16 +373,21 @@ body {
     font-size: var(--font-16);
     font-weight: var(--font-regular);
     color: var(--dark);
-    min-height: 36px;
+    min-height: 40px;
+    border: 2px solid transparent;
+    transition: all var(--transition);
 }
 
 .word-chip:hover {
-    background: var(--shine-gray);
+    background: var(--gray);
+    transform: scale(1.02);
 }
 
 .word-chip.selected {
     background: var(--accent);
-    color: var(--white);
+    color: var(--black);
+    border-color: var(--black);
+    transform: scale(1.02);
 }
 
 .chip-text {
@@ -307,6 +397,7 @@ body {
 .chip-check {
     opacity: 0;
     font-size: var(--font-16);
+    transition: opacity var(--transition);
 }
 
 .word-chip.selected .chip-check {
@@ -339,6 +430,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 0 var(--space-lg);
+    border-bottom: 1px solid var(--gray);
 }
 
 .header-left {
@@ -372,6 +464,8 @@ body {
     padding: var(--space) var(--space-xl);
     width: calc(100vw - 48px);
     min-width: auto;
+    font-size: var(--font-18);
+    font-weight: var(--font-semibold);
 }
 
 /* Контент словника */
@@ -382,7 +476,7 @@ body {
 }
 
 .translation-status {
-    background: var(--dark);
+    background: var(--black);
     color: var(--white);
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius);
@@ -391,6 +485,7 @@ body {
     font-size: var(--font-16);
     font-weight: var(--font-semibold);
     animation: pulse 1.5s infinite;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .translation-status::before {
@@ -415,14 +510,18 @@ body {
     justify-content: space-between;
     align-items: center;
     min-height: 80px;
+    border: 1px solid transparent;
+    transition: all var(--transition);
 }
 
 .word-item:hover {
     border-color: var(--accent);
+    background: var(--white);
 }
 
 .word-item.translating {
     background: var(--shine-gray);
+    border-color: var(--gray);
 }
 
 /* Контент слова (ліва частина) */
@@ -510,7 +609,7 @@ body {
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateY(var(--space-lg)); }
+    from { opacity: 0; transform: translateY(-var(--space-lg)); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -518,7 +617,7 @@ body {
     to { opacity: 0; transform: translateY(-var(--space-sm)); }
 }
 
-@keyframes popupSlideUp {
+@keyframes slideUp {
     from { 
         opacity: 0; 
         transform: translateY(100%); 
@@ -529,17 +628,22 @@ body {
     }
 }
 
-@keyframes popupSlideIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+@keyframes slideDown {
+    from { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+    to { 
+        opacity: 0; 
+        transform: translateY(100%); 
+    }
 }
 
 /* ========== АДАПТИВНІСТЬ ========== */
 
 @media (max-width: 768px) {
     .popup-content {
-        width: 95vw;
-        max-height: 85vh;
+        max-height: 90vh;
     }
     
     .popup-header, .popup-body {
@@ -566,12 +670,19 @@ body {
         padding: var(--space);
         padding-bottom: calc(64px + 32px + var(--space));
     }
+
+    .word-chips {
+        padding: var(--space);
+    }
+
+    .settings-menu {
+        padding: var(--space);
+    }
 }
 
 @media (max-width: 480px) {
     .popup-content {
-        width: 98vw;
-        max-height: 90vh;
+        max-height: 95vh;
     }
     
     .dictionary-header {
@@ -600,5 +711,19 @@ body {
     .word-delete-btn img {
         width: 18px;
         height: 18px;
+    }
+
+    .notification {
+        left: var(--space-sm);
+        right: var(--space-sm);
+        padding: var(--space);
+    }
+
+    .word-chips {
+        padding: var(--space-sm);
+    }
+
+    .settings-menu {
+        padding: var(--space-sm);
     }
 }
