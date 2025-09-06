@@ -12,44 +12,11 @@
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Основний контейнер замість відео -->
-    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; width: 90%; max-width: 400px;">
-        <div class="card" style="text-align: center; padding: var(--space-xl);">
-            <!-- Іконка камери -->
-            <div style="width: 100px; height: 100px; background: var(--accent); border-radius: var(--radius-round); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-lg); font-size: 40px;">
-                📷
-            </div>
-            
-            <h2 style="margin-bottom: var(--space); font-size: var(--font-24); font-weight: var(--font-semibold);">
-                OCR Scanner
-            </h2>
-            
-            <p style="color: var(--dark); margin-bottom: var(--space-lg); font-size: var(--font-18);">
-                Оберіть фото тексту для розпізнавання
-            </p>
-            
-            <!-- Прихований input для камери -->
-            <input type="file" id="camera-input" style="display: none;" accept="image/*" capture="environment">
-            
-            <!-- Кнопка вибору фото -->
-            <button id="capture" class="btn btn-primary btn-full" style="margin-bottom: var(--space);">
-                Вибрати фото
-            </button>
-            
-            <!-- Кнопка запуску OCR (спочатку прихована) -->
-            <button id="process-ocr" class="btn btn-secondary btn-full" style="display: none; margin-bottom: var(--space);">
-                Розпізнати текст
-            </button>
-            
-            <!-- Прев'ю зображення -->
-            <img id="image-preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius); margin: var(--space) 0; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" alt="Прев'ю фото">
-            
-            <!-- Статус -->
-            <div id="status" class="word-item" style="text-align: center; font-size: var(--font-16);">
-                Оберіть фото для початку
-            </div>
-        </div>
-    </div>
+    <!-- Відео на весь екран -->
+    <video id="video" autoplay playsinline></video>
+    
+    <!-- Кнопка фото -->
+    <button id="capture" class="btn btn-primary camera-capture">Зробити фото</button>
     
     <canvas id="canvas"></canvas>
     
@@ -61,7 +28,7 @@
             </div>
             <div class="popup-body">
                 <div id="popup-word-chips" class="word-chips"></div>
-                <div class="popup-actions">
+                <div class="popup-controls">
                     <button id="popup-save" class="btn btn-primary btn-full" disabled>Зберегти</button>
                     <button id="popup-back" class="btn btn-secondary btn-full">Назад</button>
                 </div>
@@ -73,7 +40,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <!-- Наші скрипти -->
-    <script src="Camera.js"></script>
+    <script src="camera.js"></script>
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="database.js"></script>
