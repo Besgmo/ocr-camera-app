@@ -1,256 +1,202 @@
-let video = document.getElementById('video');
 let canvas = document.getElementById('canvas');
 let captureBtn = document.getElementById('capture');
-let stream = null;
+let cameraInput = document.getElementById('camera-input');
+let imagePreview = document.getElementById('image-preview');
 let isProcessing = false;
 
-// Логування для відладки
-function debugLog(message, data = null) {
-    const timestamp = new Date().toISOString().split('T')[1];
-    console.log(`[${timestamp}] ${message}`, data || '');
-}
-
-// Показ статусу
-function showStatus(message, type = 'info') {
-    debugLog(`STATUS (${type}): ${message}`);
-    
-    let statusEl = document.getElementById('status-display');
-    if (!statusEl) {
-        statusEl = document.createElement('div');
-        statusEl.id = 'status-display';
-        statusEl.style.cssText = `
-            position: fixed;
-            top: 80px;
-            left: 20px;
-            right: 20px;
-            background: ${type === 'error' ? '#ff3333' : type === 'success' ? '#33ff33' : '#3333ff'};
-            color: white;
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 16px;
-            z-index: 1000;
-            text-align: center;
-            font-family: monospace;
-        `;
-        document.body.appendChild(statusEl);
+// Функція оновлення статусу
+function updateStatus(message, type = 'default') {
+    const statusEl = document.getElementById('status');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
     }
-    
-    statusEl.textContent = message;
-    statusEl.style.background = type === 'error' ? '#ff3333' : type === 'success' ? '#33ff33' : '#3333ff';
+    console.log(`Status (${type}):`, message);
 }
 
-// Примусовий запит дозволу
-async function requestCameraPermission() {
-    debugLog('=== ЗАПИТ ДОЗВОЛУ ===');
-    showStatus('Запитуємо дозвіл до камери...', 'info');
-    
-    try {
-        // Простий запит
-        const testStream = await navigator.mediaDevices.getUserMedia({ 
-            video: true,
-            audio: false 
-        });
-        
-        debugLog('Дозвіл отримано, зупиняємо тестовий потік');
-        testStream.getTracks().forEach(track => track.stop());
-        
-        showStatus('Дозвіл отримано! Запускаємо камеру...', 'success');
-        
-        setTimeout(() => startCamera(), 1000);
-        return true;
-        
-    } catch (error) {
-        debugLog('Помилка дозволу:', error);
-        showStatus(`Помилка: ${error.name}`, 'error');
-        
-        let solution = '';
-        switch (error.name) {
-            case 'NotAllowedError':
-                solution = 'Дозвольте доступ до камери в браузері (іконка замка в адресному рядку)';
-                break;
-            case 'NotFoundError':
-                solution = 'Камера не знайдена. Перевірте підключення';
-                break;
-            default:
-                solution = 'Спробуйте оновити сторінку або інший браузер';
-        }
-        
-        alert(`Проблема з камерою: ${error.name}\n\nРішення: ${solution}`);
-        return false;
+// Відкриття нативної камери телефону
+async function openCamera() {
+    console.log('Відкриваємо камеру телефону...');
+    if (cameraInput) {
+        cameraInput.click();
     }
 }
 
-// Запуск камери
-async function startCamera() {
-    debugLog('=== ЗАПУСК КАМЕРИ ===');
-    showStatus('Налаштовуємо камеру...', 'info');
+// Обробка вибору файлу з камери
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
     
-    // Налаштування відео
-    video.autoplay = true;
-    video.muted = true;
-    video.playsInline = true;
-    video.setAttribute('playsinline', 'true');
-    video.setAttribute('webkit-playsinline', 'true');
-    
-    const configs = [
-        {
-            video: {
-                facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        },
-        {
-            video: {
-                facingMode: 'user',
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }
-        },
-        {
-            video: true
-        }
-    ];
-    
-    for (let i = 0; i < configs.length; i++) {
-        try {
-            showStatus(`Спроба ${i + 1}/${configs.length}...`, 'info');
-            debugLog(`Config ${i + 1}:`, configs[i]);
-            
-            stream = await navigator.mediaDevices.getUserMedia(configs[i]);
-            video.srcObject = stream;
-            
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Timeout')), 8000);
-                
-                const checkReady = () => {
-                    if (video.readyState >= 2 && video.videoWidth > 0) {
-                        clearTimeout(timeout);
-                        resolve();
-                    }
-                };
-                
-                video.addEventListener('loadedmetadata', checkReady);
-                video.addEventListener('loadeddata', checkReady);
-                video.play().catch(console.warn);
-                
-                checkReady();
-            });
-            
-            const width = video.videoWidth;
-            const height = video.videoHeight;
-            
-            showStatus(`Камера працює! ${width}x${height}`, 'success');
-            debugLog('Камера успішно запущена:', { width, height });
-            
-            if (captureBtn) {
-                captureBtn.disabled = false;
-                captureBtn.textContent = 'Зробити фото';
-            }
-            
-            return true;
-            
-        } catch (error) {
-            debugLog(`Config ${i + 1} failed:`, error);
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-        }
-    }
-    
-    showStatus('Камера не запустилася', 'error');
-    return false;
-}
-
-// Захоплення фото
-async function capturePhoto() {
-    if (isProcessing || !stream || !video.videoWidth) {
-        showStatus('Камера не готова', 'error');
+    if (!file) {
+        console.log('Файл не обрано');
         return;
     }
+
+    console.log('Файл обрано:', file.name, file.size, 'bytes');
     
+    // Показуємо прев'ю
+    showImagePreview(file);
+    
+    // Обробляємо зображення
+    processImageFile(file);
+}
+
+// Показ прев'ю зображення
+function showImagePreview(file) {
+    if (!imagePreview) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        imagePreview.src = e.target.result;
+        imagePreview.style.display = 'block';
+        console.log('Прев\'ю показано');
+    };
+    
+    reader.onerror = function() {
+        console.error('Помилка читання файлу для прев\'ю');
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Обробка зображення
+async function processImageFile(file) {
+    if (isProcessing) {
+        console.log('Обробка вже відбувається...');
+        return;
+    }
+
     try {
         isProcessing = true;
         captureBtn.disabled = true;
-        captureBtn.textContent = 'Обробка...';
+        updateStatus('Підготовка зображення...', 'processing');
+
+        // Створюємо canvas з зображення
+        const imageCanvas = await createCanvasFromFile(file);
         
-        showStatus('Захоплення фото...', 'info');
-        
-        const width = video.videoWidth;
-        const height = video.videoHeight;
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        const context = canvas.getContext('2d');
-        context.drawImage(video, 0, 0, width, height);
-        
-        debugLog('Фото захоплено:', { width, height });
-        
+        console.log('Canvas створено, розміри:', imageCanvas.width, 'x', imageCanvas.height);
+        console.log('Мегапікселі:', (imageCanvas.width * imageCanvas.height / 1000000).toFixed(2), 'MP');
+
+        // Запускаємо OCR
         if (typeof ocrProcessor !== 'undefined') {
-            showStatus('Розпізнавання тексту...', 'info');
-            await ocrProcessor.processImage(canvas);
+            await ocrProcessor.processImage(imageCanvas);
         } else {
-            showStatus('OCR недоступний', 'error');
+            console.error('OCR процесор не доступний');
+            updateStatus('OCR не доступний', 'error');
         }
-        
+
+        console.log('Обробка завершена');
+
     } catch (error) {
-        debugLog('Capture error:', error);
-        showStatus('Помилка захоплення', 'error');
+        console.error('Помилка обробки зображення:', error);
+        updateStatus('Помилка обробки зображення', 'error');
     } finally {
         isProcessing = false;
         captureBtn.disabled = false;
-        captureBtn.textContent = 'Зробити фото';
     }
 }
 
-// Ініціалізація
-document.addEventListener('DOMContentLoaded', function() {
-    debugLog('=== ІНІЦІАЛІЗАЦІЯ ===');
-    debugLog('User Agent:', navigator.userAgent);
+// Створення canvas з файлу
+function createCanvasFromFile(file) {
+    return new Promise((resolve, reject) => {
+        // Перевіряємо тип файлу
+        if (!file.type.startsWith('image/')) {
+            reject(new Error('Обраний файл не є зображенням'));
+            return;
+        }
+
+        const img = new Image();
+        
+        img.onload = function() {
+            try {
+                // Встановлюємо розміри canvas
+                canvas.width = img.width;
+                canvas.height = img.height;
+                
+                const context = canvas.getContext('2d');
+                
+                // Очищуємо canvas
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Малюємо зображення на canvas
+                context.drawImage(img, 0, 0);
+                
+                console.log('Зображення успішно намальовано на canvas');
+                resolve(canvas);
+            } catch (error) {
+                reject(new Error('Помилка малювання на canvas: ' + error.message));
+            }
+        };
+        
+        img.onerror = function() {
+            reject(new Error('Не вдалося завантажити зображення'));
+        };
+        
+        // Створюємо URL для зображення
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+        };
+        reader.onerror = function() {
+            reject(new Error('Помилка читання файлу'));
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Скидання стану
+function reset() {
+    console.log('Скидання стану камери...');
     
+    // Приховуємо прев'ю
+    if (imagePreview) {
+        imagePreview.style.display = 'none';
+        imagePreview.src = '';
+    }
+    
+    // Очищуємо input
+    if (cameraInput) {
+        cameraInput.value = '';
+    }
+    
+    // Скидаємо статус
+    updateStatus('Готово до фото');
+    
+    // Включаємо кнопку
     if (captureBtn) {
-        captureBtn.disabled = true;
-        captureBtn.textContent = 'Очікування...';
-        captureBtn.addEventListener('click', capturePhoto);
+        captureBtn.disabled = false;
     }
     
-    // Перевірка підтримки
-    if (!navigator.mediaDevices?.getUserMedia) {
-        showStatus('Браузер не підтримує камеру', 'error');
-        return;
+    console.log('Стан камери скинуто');
+}
+
+// Ініціалізація при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Ініціалізація нативної камери...');
+    
+    // Налаштовуємо обробники подій
+    if (captureBtn) {
+        captureBtn.addEventListener('click', openCamera);
     }
     
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-        showStatus('Потрібен HTTPS для камери', 'error');
-        return;
+    if (cameraInput) {
+        cameraInput.addEventListener('change', handleFileSelect);
     }
     
-    // Створюємо кнопку запуску
-    const startBtn = document.createElement('button');
-    startBtn.textContent = 'Запустити камеру';
-    startBtn.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #01F55F;
-        color: black;
-        border: none;
-        border-radius: 25px;
-        padding: 16px 32px;
-        font-size: 18px;
-        font-weight: 600;
-        cursor: pointer;
-        z-index: 1001;
-    `;
-    startBtn.onclick = () => {
-        startBtn.remove();
-        requestCameraPermission();
-    };
+    updateStatus('Готово до фото');
     
-    document.body.appendChild(startBtn);
+    // Додаємо можливість очищення результатів
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && typeof ocrProcessor !== 'undefined') {
+            ocrProcessor.reset();
+        }
+    });
     
-    debugLog('Готово до запуску');
+    console.log('Нативна камера готова!');
 });
+
+// Експорт для сумісності з іншими модулями
+window.cameraModule = {
+    reset: reset,
+    updateStatus: updateStatus
+};
