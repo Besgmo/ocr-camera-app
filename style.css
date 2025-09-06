@@ -1,4 +1,4 @@
-/* CSS Variables - оптимізовані */
+/* CSS Variables */
 :root {
     /* Кольори */
     --accent: #01F55F;
@@ -9,7 +9,6 @@
     --white: #FFFFFF;
     
     /* Відступи */
-    --space-xs: 8px;
     --space-sm: 16px;
     --space: 16px;
     --space-lg: 24px;
@@ -17,8 +16,6 @@
     
     /* Скруглення */
     --radius: 16px;
-    --radius-lg: 24px;
-    --radius-round: 32px;
     --radius-full: 999px;
     
     /* Типографіка */
@@ -34,9 +31,7 @@
     --transition: 0.3s ease;
     
     /* Контейнери */
-    --container-width: 800px;
     --popup-width: 600px;
-    --nav-height: 70px;
     --header-height: 60px;
 }
 
@@ -56,37 +51,9 @@ body {
     padding: 0;
 }
 
-/* Спеціальний фон для сторінки камери */
-body.camera-page {
-    background: var(--black);
-    overflow: hidden;
-    width: 100vw;
-    height: 100vh;
-}
+/* ========== КНОПКИ ========== */
 
-/* Utility класи */
-.border-thin { border: 1px solid var(--gray); }
-.border-thick { border: 2px solid var(--gray); }
-.border-black { border-color: var(--black); }
-.border-accent { border-color: var(--accent); }
-.border-dark { border-color: var(--dark); }
-
-.transition { transition: all var(--transition); }
-
-.padding-sm { padding: var(--space-sm); }
-.padding { padding: var(--space); }
-.padding-lg { padding: var(--space-lg); }
-
-/* Загальні класи */
-.card {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: var(--space-lg);
-}
-
-/* ========== КНОПКИ - ТРИ ТИПИ ========== */
-
-/* 1. БАЗОВА КНОПКА */
+/* Базова кнопка */
 .btn {
     border: none;
     border-radius: var(--radius-full);
@@ -108,7 +75,7 @@ body.camera-page {
     opacity: 0.6;
 }
 
-/* 2. PRIMARY КНОПКИ (акцентні) */
+/* Primary кнопки */
 .btn-primary {
     background: var(--accent);
     color: var(--black);
@@ -129,7 +96,7 @@ body.camera-page {
     color: var(--white);
 }
 
-/* 3. SECONDARY КНОПКИ (вторинні) */
+/* Secondary кнопки */
 .btn-secondary {
     background: var(--gray);
     color: var(--dark);
@@ -140,12 +107,7 @@ body.camera-page {
     color: var(--black);
 }
 
-.btn-secondary.active {
-    background: var(--accent);
-    color: var(--black);
-}
-
-/* 4. ICON КНОПКИ (іконочні) */
+/* Icon кнопки */
 .btn-icon {
     background: none;
     border: none;
@@ -162,76 +124,93 @@ body.camera-page {
     height: 54px;
 }
 
-.btn-icon.btn-wide {
-    width: 64px;
-}
-
 .btn-icon:hover {
     color: var(--black);
     background: var(--gray);
 }
 
-/* ========== МОДИФІКАТОРИ ========== */
-
+/* Модифікатори кнопок */
 .btn-full {
     width: 100%;
     min-width: auto;
 }
 
-/* ========== МОДИФІКАТОРИ ДЛЯ НАВІГАЦІЇ ========== */
+/* ========== НОТІФІКАЦІЇ ========== */
 
-.btn-nav[data-section="camera"] {
-    flex: 2;
-}
-
-.btn-nav[data-section="flashcards"] {
-    width: 64px;
-    flex: none;
-    border-radius: var(--radius-full) !important;
-}
-
-/* ========== КАМЕРА НА ВЕСЬ ЕКРАН ========== */
-
-/* Відео на весь екран */
-#video {
+.notification {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: calc(var(--header-height) + var(--space-lg));
+    left: var(--space-lg);
+    right: var(--space-lg);
     background: var(--black);
-    object-fit: cover;
-    z-index: 1;
+    color: var(--white);
+    padding: var(--space-lg);
+    border-radius: var(--radius);
+    font-size: var(--font-16);
+    font-weight: var(--font-semibold);
+    z-index: 1001;
+    text-align: center;
+    animation: slideIn 0.3s ease;
 }
 
-/* Верхня кнопка закрити */
-.camera-close {
-    position: fixed;
-    top: 24px;
-    left: 24px;
-    z-index: 100;
+.notification.error {
+    background: #ff4444;
+    color: var(--white);
 }
 
-/* Кнопка фото знизу */
-.camera-capture {
-    position: fixed;
-    bottom: 32px;
-    left: 24px;
-    right: 24px;
-    z-index: 100;
+/* ========== СТАТУСИ ========== */
+
+.status {
+    padding: var(--space-sm) var(--space);
+    text-align: center;
+    border-radius: var(--radius);
+    font-size: var(--font-16);
+    font-weight: var(--font-semibold);
+    background: var(--gray);
+    color: var(--dark);
+    margin: var(--space);
+}
+
+.status.processing {
     background: var(--accent);
     color: var(--black);
-    height: 64px;
-    padding: var(--space) var(--space-xl);
-    width: calc(100vw - 48px);
-    min-width: auto;
 }
 
-#canvas {
-    display: none;
+.status.success {
+    background: var(--accent);
+    color: var(--black);
 }
 
-/* Попап */
+.status.error {
+    background: #ff4444;
+    color: var(--white);
+}
+
+.ocr-status {
+    position: fixed;
+    bottom: 120px;
+    left: var(--space-lg);
+    right: var(--space-lg);
+    background: var(--dark);
+    color: var(--white);
+    padding: var(--space);
+    border-radius: var(--radius);
+    z-index: 90;
+    text-align: center;
+}
+
+.ocr-status.processing {
+    background: var(--accent);
+    color: var(--black);
+}
+
+.ocr-status.error {
+    background: #ff4444;
+    color: var(--white);
+}
+
+/* ========== ПОПАП ========== */
+
 .popup-overlay {
     position: fixed;
     top: 0;
@@ -277,12 +256,15 @@ body.camera-page {
     overflow-y: auto;
 }
 
-.popup-controls {
+.popup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
     margin-top: var(--space-lg);
-    padding-top: var(--space-lg);
 }
 
-/* Чіпси слів */
+/* ========== ЧІПСИ СЛІВ ========== */
+
 .word-chips {
     display: flex;
     flex-wrap: wrap;
@@ -331,37 +313,6 @@ body.camera-page {
     opacity: 1;
 }
 
-.chips-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space);
-}
-
-.selected-info {
-    font-size: var(--font-16);
-    color: var(--dark);
-    font-weight: var(--font-semibold);
-}
-
-.chips-buttons {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-}
-
-.success-message {
-    background: var(--accent);
-    color: var(--white);
-    border-radius: var(--radius);
-    padding: var(--space-sm) var(--space);
-    margin-top: var(--space);
-    font-size: var(--font-16);
-    font-weight: var(--font-semibold);
-    animation: slideIn var(--transition), fadeOut 0.5s ease 2.5s;
-}
-
 .word-chips:empty::before {
     content: "Слова з'являться тут після розпізнавання тексту...";
     color: var(--dark);
@@ -373,7 +324,9 @@ body.camera-page {
     height: 40px;
 }
 
-/* Словник - Sticky хедер */
+/* ========== СЛОВНИК ========== */
+
+/* Sticky хедер */
 .dictionary-header {
     position: fixed;
     top: 0;
@@ -406,7 +359,7 @@ body.camera-page {
     align-items: center;
 }
 
-/* Кнопка Grab Words у словнику */
+/* Кнопка Grab Words */
 .dictionary-grab-words {
     position: fixed;
     bottom: 32px;
@@ -421,7 +374,7 @@ body.camera-page {
     min-width: auto;
 }
 
-/* Оновлений контент словника з відступом для кнопки */
+/* Контент словника */
 .dictionary-content {
     margin-top: var(--header-height);
     padding: var(--space-lg);
@@ -451,11 +404,17 @@ body.camera-page {
     gap: var(--space);
 }
 
+/* Елементи слів з кнопкою видалення */
 .word-item {
     width: 100%;
     background: var(--shine-gray);
     border-radius: var(--radius);
     padding: var(--space-lg);
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 80px;
 }
 
 .word-item:hover {
@@ -466,19 +425,63 @@ body.camera-page {
     background: var(--shine-gray);
 }
 
+/* Контент слова (ліва частина) */
+.word-content {
+    flex: 1;
+    min-width: 0; /* Для правильного переносу тексту */
+}
+
 .word-item .word {
     font-weight: var(--font-semibold);
     font-size: var(--font-24);
     color: var(--black);
     margin-bottom: var(--space-sm);
+    word-wrap: break-word;
 }
 
 .word-item .translation {
     color: var(--dark);
     font-size: var(--font-18);
     font-weight: var(--font-regular);
-    margin-bottom: var(--space-sm);
+    margin-bottom: 0;
     font-style: italic;
+    word-wrap: break-word;
+}
+
+/* Кнопка видалення (права частина) */
+.word-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--dark);
+    opacity: 0.6;
+    transition: all var(--transition);
+    padding: var(--space-sm);
+    border-radius: var(--radius-full);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: var(--space);
+    flex-shrink: 0;
+}
+
+.word-delete-btn:hover {
+    opacity: 1;
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    transform: scale(1.05);
+}
+
+.word-delete-btn:active {
+    transform: scale(0.95);
+}
+
+.word-delete-btn img {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
 }
 
 .no-words-message {
@@ -499,20 +502,8 @@ body.camera-page {
     color: var(--black);
 }
 
-/* Навігація */
-.bottom-navigation {
-    position: fixed;
-    bottom: var(--space-xl);
-    left: var(--space-lg);
-    right: var(--space-lg);
-    background: var(--white);
-    display: flex;
-    justify-content: center;
-    gap: var(--space);
-    z-index: 100;
-}
+/* ========== АНІМАЦІЇ ========== */
 
-/* Анімації */
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
@@ -527,7 +518,7 @@ body.camera-page {
     to { opacity: 0; transform: translateY(-var(--space-sm)); }
 }
 
-@keyframes slideUpIn {
+@keyframes popupSlideUp {
     from { 
         opacity: 0; 
         transform: translateY(100%); 
@@ -538,7 +529,13 @@ body.camera-page {
     }
 }
 
-/* Адаптивність */
+@keyframes popupSlideIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ========== АДАПТИВНІСТЬ ========== */
+
 @media (max-width: 768px) {
     .popup-content {
         width: 95vw;
@@ -567,20 +564,11 @@ body.camera-page {
     
     .dictionary-content {
         padding: var(--space);
-        padding-bottom: calc(var(--nav-height) + var(--space));
+        padding-bottom: calc(64px + 32px + var(--space));
     }
 }
 
 @media (max-width: 480px) {
-    .chips-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .chips-buttons {
-        justify-content: center;
-    }
-    
     .popup-content {
         width: 98vw;
         max-height: 90vh;
@@ -592,11 +580,25 @@ body.camera-page {
     
     .dictionary-content {
         padding: var(--space-sm);
-        padding-bottom: calc(var(--nav-height) + var(--space-sm));
+        padding-bottom: calc(64px + 32px + var(--space-sm));
     }
     
     .word-item {
         padding: var(--space-sm);
+        flex-direction: column;
+        align-items: stretch;
     }
-
+    
+    .word-delete-btn {
+        margin-left: 0;
+        margin-top: var(--space-sm);
+        align-self: flex-end;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .word-delete-btn img {
+        width: 18px;
+        height: 18px;
+    }
 }
