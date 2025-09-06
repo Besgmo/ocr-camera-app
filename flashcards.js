@@ -204,16 +204,120 @@ class DictionaryManager {
                         
                         return `
                             <div class="word-item ${isTranslating ? 'translating' : ''}" data-word-id="${word.id}">
-                                <div class="word">${word.word}</div>
-                                <div class="translation">${translation}</div>
+                                <div class="word-content">
+                                    <div class="word">${word.word}</div>
+                                    <div class="translation">${translation}</div>
+                                </div>
+                                <button class="word-delete-btn" data-word-id="${word.id}" title="Видалити слово">
+                                    <img src="icons/Trash Bin Trash.svg" alt="Delete" width="20" height="20">
+                                </button>
                             </div>
                         `;
                     }).join('');
+                    
+                    // Додаємо обробники для кнопок видалення
+                    this.setupDeleteButtons();
                 }
             }
         } catch (error) {
             console.error('Помилка показу слів:', error);
         }
+    }
+
+    setupDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('.word-delete-btn');
+        
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation(); // Запобігаємо всплиттю події
+                const wordId = parseInt(button.dataset.wordId);
+                const wordElement = button.closest('.word-item');
+                const wordText = wordElement.querySelector('.word').textContent;
+                
+                this.handleDeleteWord(wordId, wordText);
+            });
+        });
+    }
+
+    async handleDeleteWord(wordId, wordText) {
+        // Підтвердження видалення
+        const confirmed = confirm(`Ви впевнені, що хочете видалити слово "${wordText}"?`);
+        
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            console.log(`Видалення слова: ${wordText} (ID: ${wordId})`);
+            
+            // Перевіряємо чи існує слово перед видаленням
+            const existingWord = await databaseManager.getAllWords();
+            const wordExists = existingWord.find(w => w.id === wordId);
+            
+            if (!wordExists) {
+                console.error('Слово не знайдено в базі даних');
+                this.showDeleteMessage(`Слово "${wordText}" не знайдено`, 'error');
+                return;
+            }
+            
+            // Видаляємо з бази даних
+            await databaseManager.deleteWord(wordId);
+            
+            // Перевіряємо чи справді видалено
+            const remainingWords = await databaseManager.getAllWords();
+            const stillExists = remainingWords.find(w => w.id === wordId);
+            
+            if (stillExists) {
+                console.error('Слово не було видалено з бази даних');
+                this.showDeleteMessage(`Помилка видалення слова "${wordText}"`, 'error');
+                return;
+            }
+            
+            // Показуємо повідомлення про успіх
+            this.showDeleteMessage(`Слово "${wordText}" видалено`);
+            
+            // Оновлюємо відображення
+            this.refresh();
+            
+            console.log(`Слово "${wordText}" успішно видалено назавжди`);
+            
+        } catch (error) {
+            console.error('Помилка видалення слова:', error);
+            
+            // Показуємо повідомлення про помилку
+            this.showDeleteMessage(`Помилка видалення слова "${wordText}"`, 'error');
+        }
+    }
+
+    showDeleteMessage(message, type = 'success') {
+        // Створюємо тимчасове повідомлення
+        const messageEl = document.createElement('div');
+        messageEl.className = `delete-message ${type}`;
+        messageEl.textContent = message;
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${type === 'error' ? '#ff4444' : 'var(--accent)'};
+            color: ${type === 'error' ? 'var(--white)' : 'var(--black)'};
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius);
+            font-size: var(--font-16);
+            font-weight: var(--font-semibold);
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(messageEl);
+        
+        // Видаляємо через 3 секунди
+        setTimeout(() => {
+            if (messageEl.parentNode) {
+                messageEl.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => messageEl.remove(), 300);
+            }
+        }, 3000);
     }
 
     formatDate(date) {
