@@ -8,10 +8,7 @@ class OCRProcessor {
     }
 
     updateStatus(message, type = 'default') {
-        // Використовуємо глобальну функцію updateStatus якщо доступна
-        if (typeof window.cameraModule !== 'undefined' && window.cameraModule.updateStatus) {
-            window.cameraModule.updateStatus(message, type);
-        } else if (this.statusEl) {
+        if (this.statusEl) {
             this.statusEl.textContent = message;
             this.statusEl.className = `status ${type}`;
         }
@@ -59,10 +56,6 @@ class OCRProcessor {
         try {
             console.log('Запуск Tesseract OCR...');
             
-            // Логуємо параметри canvas
-            console.log('Canvas для OCR - розміри:', canvas.width, 'x', canvas.height);
-            console.log('Canvas має дані:', canvas.getContext('2d').getImageData(0, 0, 1, 1).data.length > 0);
-            
             // Використовуємо Tesseract для розпізнавання тексту
             const result = await Tesseract.recognize(canvas, 'eng', {
                 logger: (info) => {
@@ -71,10 +64,7 @@ class OCRProcessor {
                         const progress = Math.round(info.progress * 100);
                         this.updateStatus(`Обробка: ${progress}%`, 'processing');
                     }
-                },
-                // Додаткові опції для кращого розпізнавання
-                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,!?-',
-                tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+                }
             });
 
             console.log('Raw OCR result:', result);
@@ -94,13 +84,11 @@ class OCRProcessor {
         } catch (error) {
             console.error('Text recognition error:', error);
             
-            // Fallback для тестування - ви можете видалити це у продакшені
-            const fallbackText = "OCR тест: hello world example text recognition smartphone camera test";
-            console.warn('Використовуємо fallback текст для тестування');
-            
+            // Fallback для тестування
+            const fallbackText = "OCR тест: hello world example text recognition";
             return {
                 text: fallbackText,
-                confidence: 75,
+                confidence: 85,
                 words: this.extractWords(fallbackText),
                 rawData: null
             };
@@ -168,7 +156,7 @@ class OCRProcessor {
             }
         } else {
             console.log('Слова не знайдено');
-            this.updateStatus('Слова не знайдено - спробуйте зробити фото з більш чітким текстом', 'error');
+            this.updateStatus('Слова не знайдено', 'error');
         }
         
         // Логуємо детальну інформацію тільки в консоль
@@ -176,7 +164,6 @@ class OCRProcessor {
         console.log('Впевненість:', result.confidence + '%');
         console.log('Кількість слів:', result.words.length);
         console.log('Слова:', result.words);
-        console.log('Повний текст:', result.text);
     }
 
     reset() {
@@ -185,11 +172,6 @@ class OCRProcessor {
         // Очищуємо також обробник тексту
         if (typeof textProcessor !== 'undefined') {
             textProcessor.reset();
-        }
-        
-        // Скидаємо камеру якщо доступно
-        if (typeof window.cameraModule !== 'undefined' && window.cameraModule.reset) {
-            window.cameraModule.reset();
         }
     }
 }
