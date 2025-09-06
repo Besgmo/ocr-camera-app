@@ -210,7 +210,8 @@ class TextProcessor {
             if (existing > 0) message += `${existing} слів вже були в словнику. `;
             if (errors > 0) message += `${errors} помилок при додаванні.`;
             
-            this.showSuccessMessage(message || 'Слова оброблено');
+            // Використовуємо уніфіковану функцію показу повідомлень
+            this.showNotification(message || 'Слова оброблено', 'success');
             
             // Закриваємо попап і залишаємось на сторінці
             this.closePopup();
@@ -227,7 +228,7 @@ class TextProcessor {
             
         } catch (error) {
             console.error('Помилка додавання слів:', error);
-            this.showSuccessMessage('Помилка при збереженні слів');
+            this.showNotification('Помилка при збереженні слів', 'error');
         }
     }
 
@@ -329,23 +330,33 @@ class TextProcessor {
         }
     }
 
-    showSuccessMessage(message) {
-        // Створюємо тимчасове повідомлення
-        const messageEl = document.createElement('div');
-        messageEl.className = 'notification';
-        messageEl.textContent = message;
+    // ======== УНІФІКОВАНІ ФУНКЦІЇ ПОКАЗУ ПОВІДОМЛЕНЬ ========
+
+    showNotification(message, type = 'success') {
+        // Створюємо уніфіковане повідомлення з чорним фоном і білим текстом
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
         
-        document.body.appendChild(messageEl);
+        document.body.appendChild(notification);
         
         // Видаляємо через 3 секунди
         setTimeout(() => {
-            if (messageEl.parentNode) {
-                messageEl.style.animation = 'fadeOut 0.3s ease forwards';
-                setTimeout(() => messageEl.remove(), 300);
+            if (notification.parentNode) {
+                notification.style.animation = 'fadeOut 0.3s ease forwards';
+                setTimeout(() => notification.remove(), 300);
             }
         }, 3000);
         
-        console.log('SUCCESS:', message);
+        console.log(`Notification (${type}):`, message);
+    }
+
+    showSuccessMessage(message) {
+        this.showNotification(message, 'success');
+    }
+
+    showErrorMessage(message) {
+        this.showNotification(message, 'error');
     }
 
     reset() {
