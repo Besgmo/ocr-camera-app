@@ -6,35 +6,47 @@
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="camera-page-native">
+<body>
     <!-- Верхня кнопка -->
     <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Основний контейнер -->
-    <div class="camera-container">
-        <div class="camera-icon">📷</div>
-        
-        <h1 class="camera-title">OCR Scanner</h1>
-        <p class="camera-subtitle">Зробіть фото тексту для розпізнавання та додавання слів до словника</p>
-        
-        <!-- Прихований input для камери -->
-        <input type="file" id="camera-input" class="camera-input" accept="image/*" capture="environment">
-        
-        <!-- Кнопка для відкриття камери -->
-        <button id="capture" class="camera-button">
-            📸 Зробити фото
-        </button>
-        
-        <!-- Прев'ю зображення -->
-        <img id="image-preview" class="image-preview" alt="Прев'ю фото">
-        
-        <!-- Статус -->
-        <div id="status" class="status default">Натисніть кнопку для фото</div>
+    <!-- Контейнер як в словнику -->
+    <div class="dictionary-content">
+        <div class="card" style="text-align: center; margin-top: 60px;">
+            <!-- Іконка використовуючи існуючі стилі -->
+            <div style="width: 120px; height: 120px; background: var(--accent); border-radius: var(--radius-round); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-xl); color: var(--black); font-size: 48px;">
+                📷
+            </div>
+            
+            <h1 style="font-size: var(--font-24); font-weight: var(--font-semibold); color: var(--black); margin-bottom: var(--space);">
+                OCR Scanner
+            </h1>
+            
+            <p style="font-size: var(--font-18); color: var(--dark); margin-bottom: var(--space-xl); line-height: 1.4;">
+                Зробіть фото тексту для розпізнавання та додавання слів до словника
+            </p>
+            
+            <!-- Прихований input для камери -->
+            <input type="file" id="camera-input" style="display: none;" accept="image/*" capture="environment">
+            
+            <!-- Кнопка використовуючи існуючі класи -->
+            <button id="capture" class="btn btn-primary" style="margin-bottom: var(--space-lg); min-width: 200px;">
+                📸 Зробити фото
+            </button>
+            
+            <!-- Прев'ю зображення -->
+            <img id="image-preview" style="max-width: 100%; max-height: 300px; border-radius: var(--radius); margin: var(--space-lg) 0; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" alt="Прев'ю фото">
+            
+            <!-- Статус використовуючи існуючі класи word-item -->
+            <div id="status" class="word-item" style="text-align: center; margin: var(--space) auto; max-width: 400px;">
+                Натисніть кнопку для фото
+            </div>
+        </div>
     </div>
     
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" style="display: none;"></canvas>
     
     <!-- Попап для вибору слів -->
     <div id="words-popup" class="popup-overlay" style="display: none;">
