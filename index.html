@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +14,7 @@
             <span id="words-count">0 words</span>
         </div>
         <div class="header-right">
-            <button class="btn-icon btn-square" id="settings-btn">
+            <button class="btn-icon" id="settings-btn">
                 <img src="icons/Settings.svg" alt="Settings" width="24" height="24">
             </button>
         </div>
@@ -37,7 +37,7 @@
     <!-- Прихований canvas для обробки -->
     <canvas id="canvas" style="display: none;"></canvas>
     
-    <!-- Статус обробки -->
+    <!-- Статус обробки OCR -->
     <div id="ocr-status" class="ocr-status" style="display: none;">
         <div class="status-content">
             <div class="status-text">Готово до фото</div>
@@ -45,7 +45,8 @@
         </div>
     </div>
 
-    
+    <!-- Статус для OCR процесора - ПРИХОВАНО -->
+    <div id="status" class="status" style="display: none;">Готово до вибору фото</div>
     
     <!-- Попап для вибору слів -->
     <div id="words-popup" class="popup-overlay" style="display: none;">
@@ -66,12 +67,12 @@
     <!-- Tesseract.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- Наші скрипти -->
+    <!-- Наші скрипти в правильному порядку -->
     <script src="database.js"></script>
     <script src="flashcards.js"></script>
-    <script src="utils.js"></script>
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="camera-words.js"></script>
+    <script src="utils.js"></script>
 </body>
 </html>
