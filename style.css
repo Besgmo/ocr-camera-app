@@ -585,11 +585,16 @@ body {
     
     .word-item {
         padding: var(--space-sm);
+        align-items: center;
+        justify-content: space-between;
+        display: flex;
     }
     
     .word-delete-btn {
         width: 40px;
         height: 40px;
+        margin-left: var(--space-sm);
+        flex-shrink: 0;
     }
     
     .word-delete-btn img {
