@@ -3,29 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR Camera App</title>
+    <title>OCR Dictionary App</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="photo-upload-page">
-    <!-- Верхня кнопка -->
-    <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
-        <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
-    </button>
-    
-    <!-- Головна область для завантаження фото -->
-    <div id="upload-area" class="upload-area">
-        <div class="upload-content">
-            <div class="upload-icon">📷</div>
-            <h2>Додати фото для OCR</h2>
-            <p>Виберіть фото з галереї або зробіть нове фото</p>
-            <div id="status" class="status">Готово до вибору фото</div>
+<body>
+    <!-- Sticky хедер -->
+    <div id="dictionary-header" class="dictionary-header">
+        <div class="header-left">
+            <img src="icons/fi_book.svg" alt="Dictionary" width="24" height="24">
+            <span id="words-count">0 words</span>
+        </div>
+        <div class="header-right">
+            <button class="btn-icon btn-square" id="settings-btn">
+                <img src="icons/Settings.svg" alt="Settings" width="24" height="24">
+            </button>
         </div>
     </div>
     
-    <!-- Кнопка додавання фото -->
-    <button id="capture" class="btn btn-primary camera-capture">Додати фото</button>
+    <!-- Контент словника -->
+    <div id="dictionary-content" class="dictionary-content">
+        <div id="translation-status" class="translation-status" style="display: none;"></div>
+        <div class="words-list" id="words-list"></div>
+    </div>
     
-    <canvas id="canvas"></canvas>
+    <!-- Кнопка Grab Words -->
+    <button id="grab-words" class="btn btn-primary dictionary-grab-words">
+        Grab words
+    </button>
+    
+    <!-- Прихований input для вибору фото -->
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;">
+    
+    <!-- Прихований canvas для обробки -->
+    <canvas id="canvas" style="display: none;"></canvas>
+    
+    <!-- Статус обробки -->
+    <div id="ocr-status" class="ocr-status" style="display: none;">
+        <div class="status-content">
+            <div class="status-text">Готово до фото</div>
+            <div class="status-progress"></div>
+        </div>
+    </div>
+
+    
     
     <!-- Попап для вибору слів -->
     <div id="words-popup" class="popup-overlay" style="display: none;">
@@ -47,11 +67,11 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <!-- Наші скрипти -->
-    <script src="camera.js"></script>
+    <script src="database.js"></script>
+    <script src="flashcards.js"></script>
+    <script src="utils.js"></script>
     <script src="ocr.js"></script>
     <script src="text.js"></script>
-    <script src="database.js"></script>
+    <script src="camera-words.js"></script>
 </body>
 </html>
-
-
