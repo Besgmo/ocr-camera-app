@@ -1,194 +1,232 @@
-console.log('=== Camera.js ЗАВАНТАЖЕНО ===');
-
-// Глобальні змінні
-let video = document.getElementById('video');
 let canvas = document.getElementById('canvas');
 let captureBtn = document.getElementById('capture');
-let stream = null;
+let fileInput = null;
 let isProcessing = false;
 
-// Функція ініціалізації камери
-async function initCamera() {
-    console.log('=== ІНІЦІАЛІЗАЦІЯ КАМЕРИ ===');
+// Створення прихованого input для вибору файлів
+function createFileInput() {
+    if (!fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.capture = 'environment'; // Відкриває камеру на мобільних пристроях
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+        
+        // Обробник вибору файлу
+        fileInput.addEventListener('change', handleFileSelect);
+    }
+}
+
+// Обробка вибраного файлу
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
     
-    video = document.getElementById('video');
-    canvas = document.getElementById('canvas');
-    captureBtn = document.getElementById('capture');
+    if (!file) {
+        console.log('Файл не вибрано');
+        return;
+    }
     
-    console.log('Елементи знайдено:', {
-        video: !!video,
-        canvas: !!canvas,
-        captureBtn: !!captureBtn
-    });
+    console.log('Вибрано файл:', file.name, 'Розмір:', file.size, 'байт');
     
-    if (!video || !canvas || !captureBtn) {
-        console.error('Критичні елементи не знайдено');
+    if (!file.type.startsWith('image/')) {
+        console.error('Вибраний файл не є зображенням');
+        if (typeof ocrProcessor !== 'undefined') {
+            ocrProcessor.updateStatus('Будь ласка, виберіть зображення', 'error');
+        }
         return;
     }
     
     try {
-        // Запитуємо доступ до камери
-        stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-                facingMode: 'environment', // Задня камера
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            } 
-        });
-        
-        video.srcObject = stream;
-        console.log('Камера ініціалізована успішно');
-        
-        // Додаємо обробник для кнопки фото
-        captureBtn.addEventListener('click', capturePhoto);
-        
-    } catch (err) {
-        console.error('Помилка доступу до камери:', err);
-        alert('Помилка доступу до камери: ' + err.message);
-    }
-}
-
-// Функція зупинки камери
-function stopCamera() {
-    console.log('=== ЗУПИНКА КАМЕРИ ===');
-    
-    if (stream) {
-        stream.getTracks().forEach(track => {
-            track.stop();
-            console.log('Track зупинено:', track.kind);
-        });
-        stream = null;
-    }
-    
-    if (video) {
-        video.srcObject = null;
-    }
-}
-
-// Функція створення фото
-function capturePhoto() {
-    console.log('=== СТВОРЕННЯ ФОТО ===');
-    
-    if (!video || !canvas) {
-        console.error('Video або canvas не знайдено');
-        return;
-    }
-    
-    if (isProcessing) {
-        console.log('Фото вже обробляється');
-        return;
-    }
-    
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-        console.error('Відео ще не готове');
-        alert('Зачекайте, камера ще завантажується...');
-        return;
-    }
-    
-    try {
-        // Встановлюємо розмір canvas під відео
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // Малюємо кадр з відео на canvas
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        console.log('Фото створено:', canvas.width, 'x', canvas.height);
-        
-        // Конвертуємо в blob та передаємо в OCR
-        canvas.toBlob(function(blob) {
-            if (blob) {
-                console.log('Blob створено, розмір:', blob.size);
-                processImageBlob(blob);
-            } else {
-                console.error('Не вдалося створити blob');
-                alert('Помилка створення фото');
-            }
-        }, 'image/jpeg', 0.8);
-        
+        // Обробляємо зображення
+        await processSelectedImage(file);
     } catch (error) {
-        console.error('Помилка створення фото:', error);
-        alert('Помилка створення фото: ' + error.message);
+        console.error('Помилка обробки файлу:', error);
+        if (typeof ocrProcessor !== 'undefined') {
+            ocrProcessor.updateStatus('Помилка обробки зображення', 'error');
+        }
+    } finally {
+        // Очищуємо input для можливості вибрати той же файл знову
+        fileInput.value = '';
     }
 }
 
-// Функція обробки blob зображення
-async function processImageBlob(blob) {
-    console.log('=== ОБРОБКА ЗОБРАЖЕННЯ ===');
-    
+// Обробка зображення та запуск OCR
+async function processSelectedImage(file) {
     if (isProcessing) {
-        console.log('Вже обробляється');
+        console.log('Обробка вже відбувається...');
         return;
     }
+
+    console.log('=== ОБРОБКА ЗОБРАЖЕННЯ ===');
     
     try {
         isProcessing = true;
         captureBtn.disabled = true;
-        captureBtn.textContent = 'Обробляємо...';
+        captureBtn.textContent = 'Обробка...';
         
-        // Передаємо в OCR процесор
         if (typeof ocrProcessor !== 'undefined') {
-            await ocrProcessor.processImageBlob(blob);
-        } else {
-            console.error('OCR процесор не знайдено');
-            alert('OCR процесор не завантажений');
+            ocrProcessor.updateStatus('Завантаження зображення...', 'processing');
         }
         
+        // Створюємо об'єкт Image для завантаження
+        const img = new Image();
+        
+        // Обробляємо зображення після завантаження
+        await new Promise((resolve, reject) => {
+            img.onload = () => {
+                try {
+                    console.log('Зображення завантажено:', img.width, 'x', img.height);
+                    
+                    // Встановлюємо розміри canvas відповідно до зображення
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    const context = canvas.getContext('2d');
+                    
+                    // Малюємо зображення на canvas
+                    context.drawImage(img, 0, 0);
+                    
+                    console.log('=== ДЕТАЛЬНА ІНФОРМАЦІЯ ===');
+                    console.log('Розміри зображення:', img.width, 'x', img.height);
+                    console.log('Canvas розміри:', canvas.width, 'x', canvas.height);
+                    console.log('Мегапікселі:', (img.width * img.height / 1000000).toFixed(2), 'MP');
+                    console.log('Розмір файлу:', (file.size / 1024).toFixed(2), 'KB');
+                    
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            img.onerror = () => {
+                reject(new Error('Не вдалося завантажити зображення'));
+            };
+            
+            // Запускаємо завантаження зображення
+            img.src = URL.createObjectURL(file);
+        });
+        
+        // Запускаємо OCR обробку
+        if (typeof ocrProcessor !== 'undefined') {
+            await ocrProcessor.processImage(canvas);
+        } else {
+            console.error('OCR процесор не доступний');
+            throw new Error('OCR процесор не знайдено');
+        }
+        
+        console.log('=== ЗОБРАЖЕННЯ ОБРОБЛЕНО ===');
+        
     } catch (error) {
-        console.error('Помилка обробки:', error);
-        alert('Помилка обробки зображення: ' + error.message);
+        console.error('Помилка обробки зображення:', error);
+        if (typeof ocrProcessor !== 'undefined') {
+            ocrProcessor.updateStatus('Помилка обробки зображення', 'error');
+        }
+        throw error;
     } finally {
         isProcessing = false;
         captureBtn.disabled = false;
-        captureBtn.textContent = 'Зробити фото';
+        captureBtn.textContent = 'Додати фото';
     }
 }
 
-// Функція скидання
-function reset() {
-    console.log('=== СКИДАННЯ КАМЕРИ ===');
+// Функція для відкриття вибору файлу
+function openFileSelector() {
+    if (!fileInput) {
+        createFileInput();
+    }
     
-    isProcessing = false;
+    console.log('Відкриття вибору файлу...');
     
+    if (typeof ocrProcessor !== 'undefined') {
+        ocrProcessor.updateStatus('Виберіть зображення...', 'default');
+    }
+    
+    fileInput.click();
+}
+
+// Ініціалізація при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Ініціалізація додатку для завантаження фото...');
+    
+    // Створюємо file input
+    createFileInput();
+    
+    // Додаємо обробник кнопки (замість фото з камери - вибір файлу)
     if (captureBtn) {
-        captureBtn.disabled = false;
-        captureBtn.textContent = 'Зробити фото';
+        captureBtn.addEventListener('click', openFileSelector);
+        captureBtn.textContent = 'Додати фото';
     }
     
-    // Очищаємо canvas
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-}
-
-// Функція оновлення статусу (для сумісності)
-function updateStatus(message, type = 'default') {
-    console.log(`Camera Status: ${message}`);
-    // Можна додати візуальний індикатор статусу якщо потрібно
-}
-
-// Обробники подій
-window.addEventListener('load', initCamera);
-window.addEventListener('beforeunload', stopCamera);
-
-// Обробник Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        reset();
-        if (typeof ocrProcessor !== 'undefined') {
+    // Додаємо можливість drag & drop (бонус функціонал)
+    setupDragAndDrop();
+    
+    // Додаємо можливість очищення результатів
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && typeof ocrProcessor !== 'undefined') {
             ocrProcessor.reset();
         }
+    });
+    
+    // Оновлюємо статус
+    if (typeof ocrProcessor !== 'undefined') {
+        ocrProcessor.updateStatus('Готово до вибору фото');
     }
+    
+    console.log('Додаток готовий для завантаження фото!');
 });
 
-// Експорт для сумісності
-window.cameraModule = {
-    reset: reset,
-    updateStatus: updateStatus,
-    stopCamera: stopCamera,
-    initCamera: initCamera
-};
-
-console.log('Camera.js завантажено та готовий до роботи');
+// Додатковий функціонал: Drag & Drop
+function setupDragAndDrop() {
+    const dropZone = document.body;
+    
+    // Запобігаємо стандартній поведінці браузера
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Додаємо візуальний фідбек при перетягуванні
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight(e) {
+        dropZone.style.backgroundColor = 'rgba(1, 245, 95, 0.1)';
+    }
+    
+    function unhighlight(e) {
+        dropZone.style.backgroundColor = '';
+    }
+    
+    // Обробляємо dropped файли
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            const file = files[0];
+            console.log('Файл перетягнуто:', file.name);
+            
+            // Імітуємо вибір файлу
+            if (file.type.startsWith('image/')) {
+                handleFileSelect({ target: { files: [file] } });
+            } else {
+                console.error('Перетягнутий файл не є зображенням');
+                if (typeof ocrProcessor !== 'undefined') {
+                    ocrProcessor.updateStatus('Будь ласка, перетягніть зображення', 'error');
+                }
+            }
+        }
+    }
+}
