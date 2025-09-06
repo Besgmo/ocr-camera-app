@@ -5,113 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Тимчасові стилі для тестування - додаємо важливість */
-        .test-camera-container {
-            position: fixed !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            background: white !important;
-            padding: 40px !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
-            z-index: 9999 !important;
-            text-align: center !important;
-            max-width: 400px !important;
-            width: 90vw !important;
-        }
-        
-        .test-camera-button {
-            background: #01F55F !important;
-            color: black !important;
-            border: none !important;
-            padding: 16px 32px !important;
-            border-radius: 999px !important;
-            font-size: 18px !important;
-            cursor: pointer !important;
-            width: 100% !important;
-            margin: 16px 0 !important;
-            font-weight: 600 !important;
-            position: relative !important;
-            z-index: 10000 !important;
-        }
-        
-        .test-camera-button:hover {
-            background: #000 !important;
-            color: white !important;
-        }
-        
-        .test-camera-button:active {
-            transform: scale(0.98) !important;
-        }
-        
-        .test-hidden-input {
-            display: none !important;
-            visibility: hidden !important;
-            position: absolute !important;
-            left: -9999px !important;
-        }
-        
-        .test-preview {
-            max-width: 100% !important;
-            max-height: 200px !important;
-            border-radius: 8px !important;
-            margin: 16px 0 !important;
-            display: none !important;
-        }
-        
-        .test-status {
-            margin: 16px 0 !important;
-            padding: 8px !important;
-            border-radius: 8px !important;
-            background: #f0f0f0 !important;
-            color: #333 !important;
-        }
-    </style>
 </head>
 <body class="camera-page">
-    
-    <!-- Кнопка закрити (існуюча) -->
+    <!-- Верхня кнопка -->
     <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Тестовий контейнер з високим z-index -->
-    <div class="test-camera-container">
-        <div style="font-size: 48px; margin-bottom: 16px;">📷</div>
-        <h2 style="margin-bottom: 16px;">OCR Scanner</h2>
-        <p style="color: #666; margin-bottom: 24px;">Натисніть для фото</p>
-        
-        <!-- ТЕСТОВА кнопка з максимальним пріоритетом -->
-        <button id="capture" class="test-camera-button" onclick="console.log('BUTTON CLICKED!'); document.getElementById('camera-input').click();">
-            📸 Зробити фото
-        </button>
-        
-        <!-- Альтернативна кнопка для тестування -->
-        <button onclick="alert('Тест кліку працює!'); document.getElementById('camera-input').click();" 
-                style="background: red; color: white; border: none; padding: 10px; margin: 5px; cursor: pointer;">
-            ТЕСТ КЛІК
-        </button>
-        
-        <!-- Прихований input -->
-        <input type="file" 
-               id="camera-input" 
-               class="test-hidden-input"
-               accept="image/*" 
-               capture="environment"
-               onchange="console.log('FILE SELECTED:', this.files[0]);">
-        
-        <!-- Прев'ю -->
-        <img id="image-preview" class="test-preview" alt="Прев'ю">
-        
-        <!-- Статус -->
-        <div id="status" class="test-status">Готово до фото</div>
+    <!-- Основний контейнер замість відео -->
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; width: 90%; max-width: 400px;">
+        <div class="card" style="text-align: center; padding: var(--space-xl);">
+            <!-- Іконка камери -->
+            <div style="width: 100px; height: 100px; background: var(--accent); border-radius: var(--radius-round); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-lg); font-size: 40px;">
+                📷
+            </div>
+            
+            <h2 style="margin-bottom: var(--space); font-size: var(--font-24); font-weight: var(--font-semibold);">
+                OCR Scanner
+            </h2>
+            
+            <p style="color: var(--dark); margin-bottom: var(--space-lg); font-size: var(--font-18);">
+                Оберіть фото тексту для розпізнавання
+            </p>
+            
+            <!-- Прихований input для камери -->
+            <input type="file" id="camera-input" style="display: none;" accept="image/*" capture="environment">
+            
+            <!-- Кнопка вибору фото -->
+            <button id="capture" class="btn btn-primary btn-full" style="margin-bottom: var(--space);">
+                Вибрати фото
+            </button>
+            
+            <!-- Кнопка запуску OCR (спочатку прихована) -->
+            <button id="process-ocr" class="btn btn-secondary btn-full" style="display: none; margin-bottom: var(--space);">
+                Розпізнати текст
+            </button>
+            
+            <!-- Прев'ю зображення -->
+            <img id="image-preview" style="max-width: 100%; max-height: 200px; border-radius: var(--radius); margin: var(--space) 0; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" alt="Прев'ю фото">
+            
+            <!-- Статус -->
+            <div id="status" class="word-item" style="text-align: center; font-size: var(--font-16);">
+                Оберіть фото для початку
+            </div>
+        </div>
     </div>
     
-    <canvas id="canvas" style="display: none;"></canvas>
+    <canvas id="canvas"></canvas>
     
-    <!-- Попап (існуючий) -->
+    <!-- Попап для вибору слів -->
     <div id="words-popup" class="popup-overlay" style="display: none;">
         <div class="popup-content">
             <div class="popup-header">
@@ -130,56 +72,6 @@
     <!-- Tesseract.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- Тестовий скрипт -->
-    <script>
-        console.log('=== ТЕСТОВИЙ СКРИПТ ===');
-        
-        // Тестуємо після завантаження DOM
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM завантажено');
-            
-            const captureBtn = document.getElementById('capture');
-            const cameraInput = document.getElementById('camera-input');
-            
-            console.log('Capture button:', captureBtn);
-            console.log('Camera input:', cameraInput);
-            
-            if (captureBtn) {
-                console.log('Додаємо event listener до кнопки');
-                
-                // Додаємо ще один event listener
-                captureBtn.addEventListener('click', function(e) {
-                    console.log('EVENT LISTENER СПРАЦЮВАВ!');
-                    console.log('Event:', e);
-                    
-                    if (cameraInput) {
-                        console.log('Викликаємо click на input');
-                        cameraInput.click();
-                    } else {
-                        console.error('Camera input не знайдено');
-                    }
-                });
-                
-                // Тестуємо безпосередньо
-                captureBtn.onclick = function() {
-                    console.log('ONCLICK СПРАЦЮВАВ!');
-                    if (cameraInput) {
-                        cameraInput.click();
-                    }
-                };
-            }
-            
-            if (cameraInput) {
-                cameraInput.addEventListener('change', function(e) {
-                    console.log('FILE INPUT CHANGE!', e.target.files);
-                    if (e.target.files[0]) {
-                        alert('Файл обрано: ' + e.target.files[0].name);
-                    }
-                });
-            }
-        });
-    </script>
-    
     <!-- Наші скрипти -->
     <script src="Camera.js"></script>
     <script src="ocr.js"></script>
@@ -187,4 +79,3 @@
     <script src="database.js"></script>
 </body>
 </html>
-
