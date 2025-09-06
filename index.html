@@ -6,51 +6,52 @@
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="camera-page">
     <!-- Верхня кнопка -->
     <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Контейнер як в словнику -->
-    <div class="dictionary-content">
-        <div class="card" style="text-align: center; margin-top: 60px;">
-            <!-- Іконка -->
-            <div style="width: 120px; height: 120px; background: var(--accent); border-radius: var(--radius-round); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-xl); color: var(--black); font-size: 48px;">
+    <!-- Замість відео - статичний інтерфейс -->
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+        <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 400px;">
+            <!-- Іконка камери -->
+            <div style="width: 100px; height: 100px; background: #01F55F; border-radius: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 40px;">
                 📷
             </div>
             
-            <h1 style="font-size: var(--font-24); font-weight: var(--font-semibold); color: var(--black); margin-bottom: var(--space);">
-                OCR Scanner
-            </h1>
-            
-            <p style="font-size: var(--font-18); color: var(--dark); margin-bottom: var(--space-xl); line-height: 1.4;">
-                Зробіть фото тексту для розпізнавання та додавання слів до словника
+            <h2 style="margin-bottom: 16px; color: #000;">OCR Scanner</h2>
+            <p style="color: #545454; margin-bottom: 32px; line-height: 1.4;">
+                Натисніть кнопку щоб зробити фото тексту
             </p>
             
-            <!-- ВИПРАВЛЕНИЙ input для камери -->
-            <input 
-                type="file" 
-                id="camera-input" 
-                style="display: none;" 
-                accept="image/*" 
-                capture="environment"
-            >
+            <!-- Прихований input для камери -->
+            <input type="file" id="camera-input" style="display: none;" accept="image/*" capture="environment">
             
-            <!-- Кнопка -->
-            <button id="capture" class="btn btn-primary" style="margin-bottom: var(--space-lg); min-width: 200px;">
+            <!-- Кнопка камери -->
+            <button id="capture" class="btn btn-primary" style="width: 100%; margin-bottom: 16px;">
                 📸 Зробити фото
             </button>
             
-            <!-- Прев'ю зображення -->
-            <img id="image-preview" style="max-width: 100%; max-height: 300px; border-radius: var(--radius); margin: var(--space-lg) 0; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.1);" alt="Прев'ю фото">
-            
             <!-- Статус -->
-            <div id="status" class="word-item" style="text-align: center; margin: var(--space) auto; max-width: 400px;">
-                Натисніть кнопку для фото
+            <div id="status" style="color: #545454; font-size: 14px;">
+                Готово до фото
             </div>
         </div>
     </div>
+    
+    <!-- Прев'ю зображення (поверх всього) -->
+    <img id="image-preview" style="
+        position: fixed; 
+        top: 20px; 
+        left: 20px; 
+        max-width: calc(100vw - 40px); 
+        max-height: 200px; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+        z-index: 50; 
+        display: none;
+    " alt="Прев'ю">
     
     <canvas id="canvas" style="display: none;"></canvas>
     
