@@ -585,14 +585,9 @@ body {
     
     .word-item {
         padding: var(--space-sm);
-        flex-direction: column;
-        align-items: stretch;
     }
     
     .word-delete-btn {
-        margin-left: 0;
-        margin-top: var(--space-sm);
-        align-self: flex-end;
         width: 40px;
         height: 40px;
     }
