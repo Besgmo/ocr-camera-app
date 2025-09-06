@@ -1,33 +1,47 @@
-console.log('=== НОВИЙ camera.js ЗАВАНТАЖЕНО ===');
+console.log('=== Camera.js ЗАВАНТАЖЕНО ===');
 
 // Глобальні змінні
 let canvas = document.getElementById('canvas');
 let captureBtn = document.getElementById('capture');
+let processBtn = document.getElementById('process-ocr');
 let cameraInput = document.getElementById('camera-input');
 let imagePreview = document.getElementById('image-preview');
 let statusEl = document.getElementById('status');
 let isProcessing = false;
+let selectedFile = null; // Зберігаємо обраний файл
 
-// Функція оновлення статусу
+// Функція оновлення статусу з існуючими стилями
 function updateStatus(message, type = 'default') {
     console.log(`Status: ${message}`);
     if (statusEl) {
         statusEl.textContent = message;
+        
+        // Використовуємо ваші існуючі CSS класи
+        statusEl.className = 'word-item';
+        statusEl.style.textAlign = 'center';
+        statusEl.style.fontSize = 'var(--font-16)';
+        
         if (type === 'error') {
-            statusEl.style.color = '#ff4444';
+            statusEl.style.background = '#ff4444';
+            statusEl.style.color = 'var(--white)';
         } else if (type === 'success') {
-            statusEl.style.color = '#01F55F';
+            statusEl.style.background = 'var(--accent)';
+            statusEl.style.color = 'var(--black)';
         } else if (type === 'processing') {
-            statusEl.style.color = '#545454';
+            statusEl.style.background = 'var(--dark)';
+            statusEl.style.color = 'var(--white)';
+            statusEl.style.animation = 'pulse 1.5s infinite';
         } else {
-            statusEl.style.color = '#545454';
+            statusEl.style.background = '';
+            statusEl.style.color = '';
+            statusEl.style.animation = 'none';
         }
     }
 }
 
-// Функція відкриття камери
+// Функція вибору фото
 function capturePhoto() {
-    console.log('=== НАТИСНУТО КНОПКУ КАМЕРИ ===');
+    console.log('=== ВИБІР ФОТО ===');
     
     if (!cameraInput) {
         console.error('Camera input не знайдено');
@@ -35,19 +49,63 @@ function capturePhoto() {
         return;
     }
     
-    updateStatus('Відкриваємо камеру...', 'processing');
+    updateStatus('Відкриваємо галерею...', 'processing');
     
-    // Програмно натискаємо на input
     try {
         cameraInput.click();
         console.log('Camera input click викликано');
     } catch (error) {
         console.error('Помилка при виклику click:', error);
-        updateStatus('Помилка відкриття камери', 'error');
+        updateStatus('Помилка відкриття галереї', 'error');
     }
 }
 
-// Обробка вибору файлу
+// Функція запуску OCR
+async function processOCR() {
+    console.log('=== ЗАПУСК OCR ===');
+    
+    if (!selectedFile) {
+        updateStatus('Спочатку оберіть фото', 'error');
+        return;
+    }
+    
+    if (isProcessing) {
+        console.log('OCR вже обробляється');
+        return;
+    }
+    
+    try {
+        isProcessing = true;
+        processBtn.disabled = true;
+        captureBtn.disabled = true;
+        
+        updateStatus('Підготовка зображення...', 'processing');
+        
+        // Створюємо canvas з файлу
+        const processedCanvas = await createCanvasFromFile(selectedFile);
+        
+        console.log('Canvas створено:', processedCanvas.width, 'x', processedCanvas.height);
+        
+        updateStatus('Запускаємо розпізнавання тексту...', 'processing');
+        
+        // Передаємо в OCR
+        if (typeof ocrProcessor !== 'undefined') {
+            await ocrProcessor.processImage(processedCanvas);
+        } else {
+            throw new Error('OCR процесор не знайдено');
+        }
+        
+    } catch (error) {
+        console.error('Помилка OCR:', error);
+        updateStatus('Помилка розпізнавання: ' + error.message, 'error');
+    } finally {
+        isProcessing = false;
+        processBtn.disabled = false;
+        captureBtn.disabled = false;
+    }
+}
+
+// Обробка вибору файлу (тільки показ прев'ю)
 function handleFileChange(event) {
     console.log('=== ФАЙЛ ОБРАНО ===');
     
@@ -56,6 +114,7 @@ function handleFileChange(event) {
     if (!file) {
         console.log('Файл не обрано');
         updateStatus('Файл не обрано', 'error');
+        hideOCRButton();
         return;
     }
     
@@ -68,16 +127,20 @@ function handleFileChange(event) {
     if (!file.type.startsWith('image/')) {
         console.error('Файл не є зображенням');
         updateStatus('Оберіть зображення', 'error');
+        hideOCRButton();
         return;
     }
     
-    updateStatus('Обробляємо фото...', 'processing');
+    // Зберігаємо файл
+    selectedFile = file;
+    
+    updateStatus('Фото обрано! Натисніть "Розпізнати текст"', 'success');
     
     // Показуємо прев'ю
     showPreview(file);
     
-    // Обробляємо файл
-    processFile(file);
+    // Показуємо кнопку OCR
+    showOCRButton();
 }
 
 // Показ прев'ю
@@ -93,36 +156,19 @@ function showPreview(file) {
     reader.readAsDataURL(file);
 }
 
-// Обробка файлу
-async function processFile(file) {
-    if (isProcessing) return;
-    
-    try {
-        isProcessing = true;
-        captureBtn.disabled = true;
-        
-        updateStatus('Створюємо canvas...', 'processing');
-        
-        // Створюємо canvas з файлу
-        const processedCanvas = await createCanvasFromFile(file);
-        
-        console.log('Canvas створено:', processedCanvas.width, 'x', processedCanvas.height);
-        
-        updateStatus('Запускаємо OCR...', 'processing');
-        
-        // Передаємо в OCR
-        if (typeof ocrProcessor !== 'undefined') {
-            await ocrProcessor.processImage(processedCanvas);
-        } else {
-            throw new Error('OCR процесор не знайдено');
-        }
-        
-    } catch (error) {
-        console.error('Помилка обробки:', error);
-        updateStatus('Помилка обробки: ' + error.message, 'error');
-    } finally {
-        isProcessing = false;
-        captureBtn.disabled = false;
+// Показ кнопки OCR
+function showOCRButton() {
+    if (processBtn) {
+        processBtn.style.display = 'block';
+        console.log('Кнопка OCR показана');
+    }
+}
+
+// Приховування кнопки OCR
+function hideOCRButton() {
+    if (processBtn) {
+        processBtn.style.display = 'none';
+        console.log('Кнопка OCR прихована');
     }
 }
 
@@ -162,6 +208,8 @@ function createCanvasFromFile(file) {
 function reset() {
     console.log('Скидання камери');
     
+    selectedFile = null;
+    
     if (imagePreview) {
         imagePreview.style.display = 'none';
         imagePreview.src = '';
@@ -171,10 +219,15 @@ function reset() {
         cameraInput.value = '';
     }
     
-    updateStatus('Готово до фото');
+    hideOCRButton();
+    updateStatus('Оберіть фото для початку');
     
     if (captureBtn) {
         captureBtn.disabled = false;
+    }
+    
+    if (processBtn) {
+        processBtn.disabled = false;
     }
 }
 
@@ -185,6 +238,7 @@ function initCamera() {
     // Перевіряємо елементи
     canvas = document.getElementById('canvas');
     captureBtn = document.getElementById('capture');
+    processBtn = document.getElementById('process-ocr');
     cameraInput = document.getElementById('camera-input');
     imagePreview = document.getElementById('image-preview');
     statusEl = document.getElementById('status');
@@ -192,18 +246,20 @@ function initCamera() {
     console.log('Елементи знайдено:', {
         canvas: !!canvas,
         captureBtn: !!captureBtn,
+        processBtn: !!processBtn,
         cameraInput: !!cameraInput,
         imagePreview: !!imagePreview,
         statusEl: !!statusEl
     });
     
-    if (!captureBtn || !cameraInput) {
+    if (!captureBtn || !cameraInput || !processBtn) {
         console.error('Критичні елементи не знайдено');
         return;
     }
     
     // Додаємо обробники
     captureBtn.addEventListener('click', capturePhoto);
+    processBtn.addEventListener('click', processOCR);
     cameraInput.addEventListener('change', handleFileChange);
     
     // Обробник Escape
@@ -216,7 +272,7 @@ function initCamera() {
         }
     });
     
-    updateStatus('Готово до фото');
+    updateStatus('Оберіть фото для початку');
     console.log('Камера ініціалізована');
 }
 
