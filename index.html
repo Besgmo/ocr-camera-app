@@ -2,25 +2,39 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OCR Camera App</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="camera-page">
+<body class="camera-page-native">
     <!-- Верхня кнопка -->
     <button id="close-camera" class="btn btn-secondary camera-close" onclick="window.location.href='words.html'">
         <img src="icons/Close_LG.svg" alt="Close" width="24" height="24">
     </button>
     
-    <!-- Відео на весь екран -->
-    <video id="video" autoplay playsinline webkit-playsinline muted></video>
+    <!-- Основний контейнер -->
+    <div class="camera-container">
+        <div class="camera-icon">📷</div>
+        
+        <h1 class="camera-title">OCR Scanner</h1>
+        <p class="camera-subtitle">Зробіть фото тексту для розпізнавання та додавання слів до словника</p>
+        
+        <!-- Прихований input для камери -->
+        <input type="file" id="camera-input" class="camera-input" accept="image/*" capture="environment">
+        
+        <!-- Кнопка для відкриття камери -->
+        <button id="capture-btn" class="camera-button">
+            📸 Зробити фото
+        </button>
+        
+        <!-- Прев'ю зображення -->
+        <img id="image-preview" class="image-preview" alt="Прев'ю фото">
+        
+        <!-- Статус -->
+        <div id="status" class="status default">Натисніть кнопку для фото</div>
+    </div>
     
-    <!-- Кнопка фото -->
-    <button id="capture" class="btn btn-primary camera-capture">Зробити фото</button>
-    
+    <!-- Прихований canvas для обробки -->
     <canvas id="canvas"></canvas>
     
     <!-- Попап для вибору слів -->
@@ -42,8 +56,154 @@
     <!-- Tesseract.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- Наші скрипти -->
-    <script src="camera.js"></script>
+    <!-- Скрипт камери -->
+    <script>
+        console.log('=== НОВИЙ CAMERA SCRIPT ЗАВАНТАЖЕНО ===');
+
+        let canvas = document.getElementById('canvas');
+        let captureBtn = document.getElementById('capture-btn');
+        let cameraInput = document.getElementById('camera-input');
+        let imagePreview = document.getElementById('image-preview');
+        let statusEl = document.getElementById('status');
+        let isProcessing = false;
+
+        // Функція оновлення статусу
+        function updateStatus(message, type = 'default') {
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status ${type}`;
+            }
+            console.log(`Status (${type}):`, message);
+        }
+
+        // Обробка натискання на кнопку камери
+        captureBtn.addEventListener('click', function() {
+            console.log('Відкриваємо камеру телефону...');
+            cameraInput.click();
+        });
+
+        // Обробка вибору файлу з камери
+        cameraInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            
+            if (!file) {
+                console.log('Файл не обрано');
+                return;
+            }
+
+            console.log('Файл обрано:', file.name, file.size, 'bytes');
+            
+            // Показуємо прев'ю
+            showImagePreview(file);
+            
+            // Обробляємо зображення
+            processImageFile(file);
+        });
+
+        // Показ прев'ю зображення
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+                console.log('Прев\'ю показано');
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Обробка зображення
+        async function processImageFile(file) {
+            if (isProcessing) {
+                console.log('Обробка вже відбувається...');
+                return;
+            }
+
+            try {
+                isProcessing = true;
+                captureBtn.disabled = true;
+                updateStatus('Підготовка зображення...', 'processing');
+
+                // Створюємо canvas з зображення
+                const imageCanvas = await createCanvasFromFile(file);
+                
+                console.log('Canvas створено, розміри:', imageCanvas.width, 'x', imageCanvas.height);
+                console.log('Мегапікселі:', (imageCanvas.width * imageCanvas.height / 1000000).toFixed(2), 'MP');
+
+                // Запускаємо OCR
+                if (typeof ocrProcessor !== 'undefined') {
+                    await ocrProcessor.processImage(imageCanvas);
+                } else {
+                    console.error('OCR процесор не доступний');
+                    updateStatus('OCR не доступний', 'error');
+                }
+
+                console.log('Обробка завершена');
+
+            } catch (error) {
+                console.error('Помилка обробки зображення:', error);
+                updateStatus('Помилка обробки зображення', 'error');
+            } finally {
+                isProcessing = false;
+                captureBtn.disabled = false;
+            }
+        }
+
+        // Створення canvas з файлу
+        function createCanvasFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                
+                img.onload = function() {
+                    // Встановлюємо розміри canvas
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    const context = canvas.getContext('2d');
+                    
+                    // Малюємо зображення на canvas
+                    context.drawImage(img, 0, 0);
+                    
+                    console.log('Зображення намальовано на canvas');
+                    resolve(canvas);
+                };
+                
+                img.onerror = function() {
+                    reject(new Error('Не вдалося завантажити зображення'));
+                };
+                
+                // Створюємо URL для зображення
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Скидання стану
+        function reset() {
+            imagePreview.style.display = 'none';
+            imagePreview.src = '';
+            cameraInput.value = '';
+            updateStatus('Натисніть кнопку для фото');
+        }
+
+        // Ініціалізація
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Новий camera script ініціалізовано');
+            updateStatus('Готово до фото');
+        });
+
+        // Експорт функцій для інших скриптів
+        window.cameraModule = {
+            reset: reset,
+            updateStatus: updateStatus
+        };
+    </script>
+    
+    <!-- Наші інші скрипти -->
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="database.js"></script>
