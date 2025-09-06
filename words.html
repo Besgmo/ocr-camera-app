@@ -27,12 +27,50 @@
     </div>
     
     <!-- Кнопка Grab Words -->
-    <button id="grab-words" class="btn btn-primary dictionary-grab-words" onclick="window.location.href='index.html'">
+    <button id="grab-words" class="btn btn-primary dictionary-grab-words">
         Grab words
     </button>
+    
+    <!-- Прихований input для вибору фото -->
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;">
+    
+    <!-- Прихований canvas для обробки -->
+    <canvas id="canvas" style="display: none;"></canvas>
+    
+    <!-- Статус обробки -->
+    <div id="ocr-status" class="ocr-status" style="display: none;">
+        <div class="status-content">
+            <div class="status-text">Готово до фото</div>
+            <div class="status-progress"></div>
+        </div>
+    </div>
+    
+    <!-- Попап для вибору слів -->
+    <div id="words-popup" class="popup-overlay" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h3>Select words</h3>
+            </div>
+            <div class="popup-body">
+                <div id="popup-word-chips" class="word-chips"></div>
+                <div class="popup-actions">
+                    <button id="popup-save" class="btn btn-primary btn-full" disabled>Зберегти</button>
+                    <button id="popup-back" class="btn btn-secondary btn-full">Назад</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tesseract.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
     <script src="database.js"></script>
     <script src="flashcards.js"></script>
     <script src="utils.js"></script>
+    
+    <!-- Додаємо OCR функціонал на сторінку словника -->
+    <script src="ocr.js"></script>
+    <script src="text.js"></script>
+    <script src="camera-words.js"></script>
 </body>
-</html> 
+</html>
