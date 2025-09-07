@@ -1,9 +1,8 @@
-console.log('=== ocr.js ЗАВАНТАЖЕНО ===');
+console.log('=== gpt-ocr.js ЗАВАНТАЖЕНО ===');
 
-// OCR Module - тільки розпізнавання без відображення результатів
-class OCRProcessor {
+class GPT4OCR {
     constructor() {
-        this.isInitialized = false;
+        this.apiKey = localStorage.getItem('gpt4omini_api_key') || null;
         this.statusEl = document.getElementById('status');
     }
 
@@ -15,168 +14,107 @@ class OCRProcessor {
         console.log(`Status (${type}):`, message);
     }
 
+    async ensureApiKey() {
+        if (!this.apiKey) {
+            const key = prompt("Введіть ваш OpenAI API ключ:");
+            if (!key) throw new Error("API ключ не введений");
+            this.apiKey = key.trim();
+            localStorage.setItem('gpt4omini_api_key', this.apiKey);
+        }
+        return this.apiKey;
+    }
+
     async processImage(canvas) {
         try {
-            this.updateStatus('Ініціалізація OCR...', 'processing');
-            await this.init();
-
             this.updateStatus('Розпізнавання тексту...', 'processing');
-            
-            const result = await this.recognizeText(canvas);
-            
-            // Передаємо результат для обробки без відображення
-            this.processResult(result);
-            
-            return result;
-        } catch (error) {
-            console.error('OCR processing error:', error);
-            this.updateStatus('Помилка розпізнавання тексту', 'error');
-            throw error;
-        }
-    }
+            await this.ensureApiKey();
 
-    async init() {
-        if (this.isInitialized) return;
-        
-        try {
-            // Перевіряємо чи доступний Tesseract
-            if (typeof Tesseract === 'undefined') {
-                throw new Error('Tesseract.js не завантажено');
-            }
-            
-            this.isInitialized = true;
-            console.log('OCR готовий до роботи');
-        } catch (error) {
-            console.error('OCR initialization error:', error);
-            throw error;
-        }
-    }
+            const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+            const base64Data = dataURL.split(',')[1];
 
-    async recognizeText(canvas) {
-        try {
-            console.log('Запуск Tesseract OCR...');
-            
-            // Використовуємо Tesseract для розпізнавання тексту
-            const result = await Tesseract.recognize(canvas, 'eng', {
-                logger: (info) => {
-                    console.log('Tesseract progress:', info);
-                    if (info.status === 'recognizing text') {
-                        const progress = Math.round(info.progress * 100);
-                        this.updateStatus(`Обробка: ${progress}%`, 'processing');
-                    }
-                }
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${this.apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Витягни весь текст з цього зображення. Поверни лише текст без коментарів."
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: `data:image/jpeg;base64,${base64Data}`,
+                                        detail: "high"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens: 1000
+                })
             });
 
-            console.log('Raw OCR result:', result);
-            
-            const cleanText = this.cleanText(result.data.text);
-            const words = this.extractWords(cleanText);
-            
-            console.log('Cleaned text:', cleanText);
-            console.log('Extracted words:', words);
-            
-            return {
-                text: cleanText,
-                confidence: result.data.confidence,
-                words: words,
-                rawData: result.data
-            };
-        } catch (error) {
-            console.error('Text recognition error:', error);
-            
-            // Fallback для тестування
-            const fallbackText = "OCR тест: hello world example text recognition";
-            return {
-                text: fallbackText,
-                confidence: 85,
-                words: this.extractWords(fallbackText),
-                rawData: null
-            };
-        }
-    }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                console.error("API Error Response:", errorData);
 
-    cleanText(text) {
-        if (!text) return '';
-        
-        return text
-            .trim()
-            .replace(/\n+/g, ' ')           // Заміна переносів рядків на пробіли
-            .replace(/\s+/g, ' ')           // Заміна множинних пробілів на один
-            .replace(/[^\w\s.,!?'-]/g, '')  // Видалення спецсимволів
-            .trim();
-    }
+                if (response.status === 401) {
+                    localStorage.removeItem('gpt4omini_api_key');
+                    this.apiKey = null;
+                    throw new Error("Невірний або прострочений API ключ");
+                }
 
-    extractWords(text) {
-        if (!text) return [];
-        
-        return text
-            .toLowerCase()
-            .split(/\s+/)
-            .map(word => word.replace(/[^\w]/g, '')) // Очищення від пунктуації
-            .filter(word => word.length >= 3)        // Тільки слова довше 3 символів
-            .filter(word => /^[a-zA-Z]+$/.test(word)) // Тільки англійські букви
-            .filter(word => !this.isCommonWord(word)) // Видаляємо дуже поширені слова
-            .filter((word, index, arr) => arr.indexOf(word) === index); // Унікальні слова
-    }
+                const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
+                throw new Error(`Помилка API: ${errorMessage}`);
+            }
 
-    isCommonWord(word) {
-        const commonWords = [
-            'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 
-            'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his',
-            'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy',
-            'did', 'way', 'she', 'use', 'your', 'said', 'each', 'make', 'most',
-            'over', 'such', 'very', 'what', 'with', 'have', 'from', 'they', 'know',
-            'want', 'been', 'good', 'much', 'some', 'time', 'well', 'come', 'could',
-            'like', 'first', 'also', 'after', 'back', 'other', 'many', 'than', 'then',
-            'them', 'these', 'would', 'there', 'this', 'that', 'when', 'where', 'will'
-        ];
-        return commonWords.includes(word.toLowerCase());
-    }
+            const data = await response.json();
+            console.log("Full API Response:", data);
 
-    processResult(result) {
-        console.log('=== ОБРОБКА OCR РЕЗУЛЬТАТУ ===');
-        console.log('Результат OCR:', result);
-        
-        if (!result.text.trim()) {
-            console.log('Текст порожній');
-            this.updateStatus('Текст не розпізнано', 'error');
-            return;
-        }
+            const text = data.choices?.[0]?.message?.content || "";
+            if (!text.trim()) throw new Error("Текст не розпізнано або порожній");
 
-        // Якщо є слова для обробки - показуємо попап
-        if (result.words && result.words.length > 0) {
-            console.log('Знайдено слова для обробки:', result.words.length);
-            this.updateStatus(`Розпізнано! Знайдено ${result.words.length} слів`, 'success');
-            
+            this.updateStatus('Текст розпізнано!', 'success');
+            console.log("OCR Result:", text);
+
+            // 🔹 Розбиваємо на слова
+            const words = text
+                .split(/\s+/)
+                .map(w => w.replace(/[^a-zA-Zа-яА-ЯіїєґІЇЄҐ0-9']/g, "")) // залишаємо літери/цифри
+                .filter(w => w.length > 1);
+
+            const result = { text, words };
+
+            // 🔹 Передаємо у твій popup/чіпси
             if (typeof textProcessor !== 'undefined') {
                 textProcessor.processText(result);
-            } else {
-                console.error('textProcessor не знайдено!');
-                this.updateStatus('Помилка обробки слів', 'error');
             }
-        } else {
-            console.log('Слова не знайдено');
-            this.updateStatus('Слова не знайдено', 'error');
+
+            return result;
+
+        } catch (error) {
+            console.error("GPT OCR Error:", error);
+            this.updateStatus(`Помилка OCR: ${error.message}`, "error");
+            throw error;
         }
-        
-        // Логуємо детальну інформацію тільки в консоль
-        console.log('=== OCR СТАТИСТИКА ===');
-        console.log('Впевненість:', result.confidence + '%');
-        console.log('Кількість слів:', result.words.length);
-        console.log('Слова:', result.words);
     }
 
     reset() {
         this.updateStatus('Готово до фото');
-        
-        // Очищуємо також обробник тексту
         if (typeof textProcessor !== 'undefined') {
             textProcessor.reset();
         }
     }
 }
 
-// Створюємо глобальний екземпляр OCR процесора
-console.log('Створюємо OCRProcessor...');
-const ocrProcessor = new OCRProcessor();
-console.log('OCRProcessor створено!');
+console.log('Створюємо GPT4OCR...');
+const ocrProcessor = new GPT4OCR();
+console.log('GPT4OCR створено!');
