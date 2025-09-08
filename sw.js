@@ -11,7 +11,6 @@ const urlsToCache = [
   '/ocr.js',
   '/text.js',
   '/camera-words.js',
-  '/utils.js',
   '/manifest.json',
   // CDN ресурси (важливо кешувати)
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js',
@@ -116,7 +115,7 @@ self.addEventListener('fetch', event => {
           
           // Для навігаційних запитів повертаємо index.html з кешу
           if (request.destination === 'document') {
-            return caches.match('/index.html');
+            return caches.match(`${BASE_PATH}/index.html`) || caches.match(`${BASE_PATH}/`);
           }
           
           throw error;
