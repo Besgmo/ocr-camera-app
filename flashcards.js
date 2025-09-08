@@ -72,6 +72,16 @@ class DictionaryManager {
         exportBtn.className = 'settings-option';
         exportBtn.textContent = 'Скачати словник';
 
+        // Кнопка "Завантажити словник"
+        const importBtn = document.createElement('button');
+        importBtn.className = 'settings-option';
+        importBtn.textContent = 'Завантажити словник';
+
+        // Кнопка "Налаштування OCR"
+        const ocrBtn = document.createElement('button');
+        ocrBtn.className = 'settings-option';
+        ocrBtn.innerHTML = 'Налаштування OCR <span style="float: right; color: var(--dark);">→</span>';
+
         // Кнопка "Видалити всі слова"
         const clearBtn = document.createElement('button');
         clearBtn.className = 'settings-option danger';
@@ -86,6 +96,22 @@ class DictionaryManager {
         exportBtn.addEventListener('click', () => {
             this.closeSettingsMenu(overlay);
             this.exportDictionary();
+        });
+
+        importBtn.addEventListener('click', () => {
+            this.closeSettingsMenu(overlay);
+            this.importDictionary();
+        });
+
+        ocrBtn.addEventListener('click', () => {
+            this.closeSettingsMenu(overlay);
+            // Відкриваємо налаштування токенів
+            if (typeof tokenManager !== 'undefined') {
+                tokenManager.showTokenSettings();
+            } else {
+                console.error('TokenManager не доступний');
+                this.showErrorMessage('Помилка: менеджер токенів недоступний');
+            }
         });
 
         clearBtn.addEventListener('click', () => {
@@ -107,6 +133,8 @@ class DictionaryManager {
         // Збираємо меню
         menu.appendChild(title);
         menu.appendChild(exportBtn);
+        menu.appendChild(importBtn);
+        menu.appendChild(ocrBtn);
         menu.appendChild(clearBtn);
         menu.appendChild(cancelBtn);
         overlay.appendChild(menu);
@@ -417,7 +445,174 @@ class DictionaryManager {
         }
     }
 
-    // Публічні методи для використання з інших модулів
+    // ======== ІМПОРТ СЛОВНИКА ========
+
+    // Метод для імпорту словника
+    async importDictionary() {
+        try {
+            // Створюємо прихований input для файлів
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.style.display = 'none';
+
+            // Додаємо в DOM
+            document.body.appendChild(fileInput);
+
+            // Обробник вибору файлу
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    await this.handleImportFile(file);
+                }
+                // Видаляємо input після використання
+                document.body.removeChild(fileInput);
+            });
+
+            // Відкриваємо файл picker
+            fileInput.click();
+
+        } catch (error) {
+            console.error('Помилка імпорту словника:', error);
+            this.showErrorMessage('Помилка імпорту словника');
+        }
+    }
+
+    async handleImportFile(file) {
+        try {
+            console.log('Обробка імпорту файлу:', file.name);
+
+            // Перевіряємо тип файлу
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                this.showErrorMessage('Будь ласка, виберіть JSON файл');
+                return;
+            }
+
+            // Читаємо файл
+            const fileContent = await this.readFileAsText(file);
+            
+            // Парсимо JSON
+            let importData;
+            try {
+                importData = JSON.parse(fileContent);
+            } catch (error) {
+                this.showErrorMessage('Невірний формат JSON файлу');
+                return;
+            }
+
+            // Валідуємо дані
+            if (!this.validateImportData(importData)) {
+                this.showErrorMessage('Невірна структура файлу словника');
+                return;
+            }
+
+            // Обробляємо імпортовані слова
+            const results = await this.processImportedWords(importData);
+            
+            // Показуємо результат
+            const addedWords = results.filter(r => r.status === 'added').length;
+            const existingWords = results.filter(r => r.status === 'exists').length;
+            
+            let message = '';
+            if (addedWords > 0) {
+                message = `Імпортовано ${addedWords} нових слів`;
+                if (existingWords > 0) {
+                    message += `, ${existingWords} вже існували`;
+                }
+            } else if (existingWords > 0) {
+                message = 'Всі слова вже були в словнику';
+            } else {
+                message = 'Не знайдено слів для імпорту';
+            }
+
+            this.showSuccessMessage(message);
+            console.log('Імпорт завершено:', { added: addedWords, existing: existingWords });
+
+        } catch (error) {
+            console.error('Помилка обробки імпорту:', error);
+            this.showErrorMessage('Помилка обробки файлу');
+        }
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Помилка читання файлу'));
+            reader.readAsText(file, 'utf-8');
+        });
+    }
+
+    validateImportData(data) {
+        // Перевіряємо що це масив
+        if (!Array.isArray(data)) {
+            console.error('Дані не є масивом');
+            return false;
+        }
+
+        // Перевіряємо що масив не порожній
+        if (data.length === 0) {
+            console.error('Масив порожній');
+            return false;
+        }
+
+        // Перевіряємо структуру кожного елемента
+        for (const item of data) {
+            if (!this.validateWord(item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    validateWord(wordObj) {
+        // Перевіряємо що це об'єкт
+        if (typeof wordObj !== 'object' || wordObj === null) {
+            console.error('Елемент не є об\'єктом:', wordObj);
+            return false;
+        }
+
+        // Перевіряємо наявність поля word
+        if (!wordObj.word || typeof wordObj.word !== 'string' || wordObj.word.trim() === '') {
+            console.error('Відсутнє або невірне поле word:', wordObj);
+            return false;
+        }
+
+        return true;
+    }
+
+    async processImportedWords(importData) {
+        try {
+            // Витягуємо тільки текст слів для додавання
+            const wordsToAdd = importData
+                .filter(item => this.validateWord(item))
+                .map(item => item.word.trim())
+                .filter(word => word.length > 0);
+
+            console.log('Слова для імпорту:', wordsToAdd);
+
+            // Використовуємо існуючий метод додавання слів
+            const results = await databaseManager.addWords(wordsToAdd);
+
+            // Оновлюємо відображення
+            this.refresh();
+
+            // Запускаємо фоновий переклад для нових слів
+            const addedWords = results.filter(r => r.status === 'added');
+            if (addedWords.length > 0) {
+                setTimeout(() => this.autoTranslateAllWords(), 1000);
+            }
+
+            return results;
+
+        } catch (error) {
+            console.error('Помилка обробки імпортованих слів:', error);
+            throw error;
+        }
+    }
+
+    // ======== ПУБЛІЧНІ МЕТОДИ ========
 
     // Метод для оновлення словника з зовні
     refresh() {
