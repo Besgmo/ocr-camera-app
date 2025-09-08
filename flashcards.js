@@ -1,6 +1,6 @@
-console.log('=== flashcards.js ЗАВАНТАЖЕНО ===');
+console.log('=== flashcards.js LOADED ===');
 
-// Dictionary Module - спрощений без HTML розмітки
+// Dictionary Module - simplified without HTML markup
 class DictionaryManager {
     constructor() {
         this.translationInProgress = false;
@@ -8,31 +8,31 @@ class DictionaryManager {
     }
 
     init() {
-        console.log('DictionaryManager ініціалізується...');
+        console.log('DictionaryManager initializing...');
         
-        // Чекаємо поки DOM завантажиться
+        // Wait for DOM to load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setupDictionary());
         } else {
             this.setupDictionary();
         }
         
-        console.log('DictionaryManager готовий!');
+        console.log('DictionaryManager ready!');
     }
 
     setupDictionary() {
-        // Налаштовуємо обробники подій
+        // Set up event handlers
         this.setupEventListeners();
         
-        // Запускаємо ініціальні процеси
+        // Launch initial processes
         this.updateWordsCount();
         this.autoTranslateAllWords();
         
-        console.log('Словник налаштовано');
+        console.log('Dictionary configured');
     }
 
     setupEventListeners() {
-        // Обробник для кнопки налаштувань
+        // Handler for settings button
         const settingsBtn = document.getElementById('settings-btn');
         if (settingsBtn) {
             settingsBtn.addEventListener('click', () => {
@@ -43,22 +43,22 @@ class DictionaryManager {
     }
 
     showSettingsMenu() {
-        // Створюємо меню налаштувань
+        // Create settings menu
         this.createSettingsMenu();
     }
 
     createSettingsMenu() {
-        // Створюємо overlay
+        // Create overlay
         const overlay = document.createElement('div');
         overlay.className = 'settings-overlay';
 
-        // Створюємо меню
+        // Create menu
         const menu = document.createElement('div');
         menu.className = 'settings-menu';
 
-        // Заголовок
+        // Title
         const title = document.createElement('h3');
-        title.textContent = 'Налаштування';
+        title.textContent = 'Settings';
         title.style.cssText = `
             margin: 0 0 var(--space-lg) 0;
             font-size: var(--font-24);
@@ -67,32 +67,32 @@ class DictionaryManager {
             text-align: center;
         `;
 
-        // Кнопка "Скачати словник"
+        // "Export dictionary" button
         const exportBtn = document.createElement('button');
         exportBtn.className = 'settings-option';
-        exportBtn.textContent = 'Скачати словник';
+        exportBtn.textContent = 'Export dictionary';
 
-        // Кнопка "Завантажити словник"
+        // "Import dictionary" button
         const importBtn = document.createElement('button');
         importBtn.className = 'settings-option';
-        importBtn.textContent = 'Завантажити словник';
+        importBtn.textContent = 'Import dictionary';
 
-        // Кнопка "Налаштування OCR"
+        // "OCR Settings" button
         const ocrBtn = document.createElement('button');
         ocrBtn.className = 'settings-option';
-        ocrBtn.innerHTML = 'Налаштування OCR <span style="float: right; color: var(--dark);">→</span>';
+        ocrBtn.innerHTML = 'Token Settings <span style="float: right; color: var(--dark);">→</span>';
 
-        // Кнопка "Видалити всі слова"
+        // "Delete all words" button
         const clearBtn = document.createElement('button');
         clearBtn.className = 'settings-option danger';
-        clearBtn.textContent = 'Видалити всі слова';
+        clearBtn.textContent = 'Delete all words';
 
-        // Кнопка "Скасувати"
+        // "Cancel" button
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'settings-option';
-        cancelBtn.textContent = 'Скасувати';
+        cancelBtn.textContent = 'Cancel';
 
-        // Обробники подій
+        // Event handlers
         exportBtn.addEventListener('click', () => {
             this.closeSettingsMenu(overlay);
             this.exportDictionary();
@@ -105,12 +105,12 @@ class DictionaryManager {
 
         ocrBtn.addEventListener('click', () => {
             this.closeSettingsMenu(overlay);
-            // Відкриваємо налаштування токенів
+            // Open token settings
             if (typeof tokenManager !== 'undefined') {
                 tokenManager.showTokenSettings();
             } else {
-                console.error('TokenManager не доступний');
-                this.showErrorMessage('Помилка: менеджер токенів недоступний');
+                console.error('TokenManager not available');
+                this.showErrorMessage('Error: token manager unavailable');
             }
         });
 
@@ -123,14 +123,14 @@ class DictionaryManager {
             this.closeSettingsMenu(overlay);
         });
 
-        // Закриття по кліку на overlay
+        // Close on overlay click
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 this.closeSettingsMenu(overlay);
             }
         });
 
-        // Збираємо меню
+        // Assemble menu
         menu.appendChild(title);
         menu.appendChild(exportBtn);
         menu.appendChild(importBtn);
@@ -139,7 +139,7 @@ class DictionaryManager {
         menu.appendChild(cancelBtn);
         overlay.appendChild(menu);
 
-        // Додаємо в DOM
+        // Add to DOM
         document.body.appendChild(overlay);
         document.body.style.overflow = 'hidden';
     }
@@ -157,17 +157,17 @@ class DictionaryManager {
         }
     }
 
-    // ======== УНІФІКОВАНІ ФУНКЦІЇ ПОКАЗУ ПОВІДОМЛЕНЬ ========
+    // ======== UNIFIED MESSAGE DISPLAY FUNCTIONS ========
 
     showNotification(message, type = 'success') {
-        // Створюємо уніфіковане повідомлення з чорним фоном і білим текстом
+        // Create unified message with black background and white text
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
-        // Видаляємо через 3 секунди
+        // Remove after 3 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.animation = 'fadeOut 0.3s ease forwards';
@@ -187,40 +187,40 @@ class DictionaryManager {
     }
 
     showDeleteMessage(message, type = 'success') {
-        // Використовуємо ту ж уніфіковану функцію
+        // Use the same unified function
         this.showNotification(message, type);
     }
 
-    // ======== ФУНКЦІЇ ПЕРЕКЛАДУ ========
+    // ======== TRANSLATION FUNCTIONS ========
 
     async autoTranslateAllWords() {
         if (this.translationInProgress) {
-            console.log('Переклад вже відбувається...');
+            console.log('Translation already in progress...');
             return;
         }
 
         try {
             this.translationInProgress = true;
-            console.log('Автоматична перевірка перекладів...');
+            console.log('Automatic translation check...');
             
             const allWords = await databaseManager.getAllWords();
             const wordsToTranslate = allWords.filter(word => 
                 !word.translation || 
                 !word.translation.trim() || 
-                word.translation.startsWith('[переклад:') ||
-                word.translation === 'Помилка перекладу' ||
-                word.translation === 'Переклад недоступний'
+                word.translation.startsWith('[translation:') ||
+                word.translation === 'Translation error' ||
+                word.translation === 'Translation unavailable'
             );
             
-            console.log(`Знайдено ${wordsToTranslate.length} слів без перекладу`);
+            console.log(`Found ${wordsToTranslate.length} words without translation`);
             
             if (wordsToTranslate.length > 0) {
-                this.updateTranslationStatus(`Фоновий переклад: ${wordsToTranslate.length} слів...`);
+                this.updateTranslationStatus(`Background translation: ${wordsToTranslate.length} words...`);
                 
                 for (let i = 0; i < wordsToTranslate.length; i++) {
                     const word = wordsToTranslate[i];
                     
-                    this.updateTranslationStatus(`Фоновий переклад: ${word.word} (${i + 1}/${wordsToTranslate.length})`);
+                    this.updateTranslationStatus(`Background translation: ${word.word} (${i + 1}/${wordsToTranslate.length})`);
                     
                     try {
                         const translation = await this.translateWord(word.word);
@@ -229,31 +229,31 @@ class DictionaryManager {
                             translation: translation
                         });
                         
-                        console.log(`Фоновий переклад: ${word.word} -> ${translation}`);
+                        console.log(`Background translation: ${word.word} -> ${translation}`);
                         
-                        // Оновлюємо відображення словника після кожного перекладу
+                        // Update dictionary display after each translation
                         this.updateWordsCount();
                         this.showAllWords();
                         
                     } catch (error) {
-                        console.error('Помилка фонового перекладу:', word.word, error);
+                        console.error('Background translation error:', word.word, error);
                         await databaseManager.updateWord(word.id, {
-                            translation: 'Помилка перекладу'
+                            translation: 'Translation error'
                         });
                     }
                     
-                    // Затримка між запитами
+                    // Delay between requests
                     if (i < wordsToTranslate.length - 1) {
                         await new Promise(resolve => setTimeout(resolve, 400));
                     }
                 }
                 
-                this.updateTranslationStatus('Фоновий переклад завершено!');
+                this.updateTranslationStatus('Background translation completed!');
                 setTimeout(() => this.hideTranslationStatus(), 2000);
             }
             
         } catch (error) {
-            console.error('Помилка автоматичного перекладу:', error);
+            console.error('Auto translation error:', error);
             this.hideTranslationStatus();
         } finally {
             this.translationInProgress = false;
@@ -261,7 +261,7 @@ class DictionaryManager {
     }
 
     async translateWord(word) {
-        console.log('Перекладаємо слово через MyMemory API:', word);
+        console.log('Translating word through MyMemory API:', word);
         
         try {
             const encodedWord = encodeURIComponent(word.trim());
@@ -290,20 +290,20 @@ class DictionaryManager {
                     !translation.includes('API LIMIT EXCEEDED') &&
                     !translation.includes('NO QUERY SPECIFIED')) {
                     
-                    console.log(`MyMemory API успіх: ${word} -> ${translation}`);
+                    console.log(`MyMemory API success: ${word} -> ${translation}`);
                     return translation.trim();
                 } else {
-                    console.log('Неякісний переклад:', translation);
-                    throw new Error('Неякісний переклад від API');
+                    console.log('Poor quality translation:', translation);
+                    throw new Error('Poor quality translation from API');
                 }
             } else {
-                console.log('API повернув помилку:', data);
+                console.log('API returned error:', data);
                 throw new Error(`API Error: ${data.responseStatus || 'Unknown'}`);
             }
             
         } catch (error) {
-            console.error('MyMemory API помилка для слова', word, ':', error.message);
-            throw new Error(`Не вдалося перекласти слово "${word}": ${error.message}`);
+            console.error('MyMemory API error for word', word, ':', error.message);
+            throw new Error(`Failed to translate word "${word}": ${error.message}`);
         }
     }
 
@@ -319,7 +319,7 @@ class DictionaryManager {
 
             this.showAllWords();
         } catch (error) {
-            console.error('Помилка оновлення лічильника слів:', error);
+            console.error('Error updating word count:', error);
         }
     }
 
@@ -333,16 +333,16 @@ class DictionaryManager {
                 if (sortedWords.length === 0) {
                     wordsListEl.innerHTML = `
                         <div class="no-words-message">
-                            <p>Словник порожній</p>
-                            <p>Додайте слова через камеру та OCR</p>
+                            <p>Dictionary is empty</p>
+                            <p>Add words through camera and OCR</p>
                         </div>
                     `;
                 } else {
                     wordsListEl.innerHTML = sortedWords.map(word => {
-                        const translation = word.translation || 'Переклад недоступний';
-                        const isTranslating = translation === 'Переклад недоступний' || 
-                                            translation === 'Помилка перекладу' ||
-                                            translation.startsWith('[переклад:');
+                        const translation = word.translation || 'Translation unavailable';
+                        const isTranslating = translation === 'Translation unavailable' || 
+                                            translation === 'Translation error' ||
+                                            translation.startsWith('[translation:');
                         
                         return `
                             <div class="word-item ${isTranslating ? 'translating' : ''}" data-word-id="${word.id}">
@@ -350,19 +350,19 @@ class DictionaryManager {
                                     <div class="word">${word.word}</div>
                                     <div class="translation">${translation}</div>
                                 </div>
-                                <button class="word-delete-btn" data-word-id="${word.id}" title="Видалити слово">
+                                <button class="word-delete-btn" data-word-id="${word.id}" title="Delete word">
                                     <img src="icons/Trash Bin Trash.svg" alt="Delete" width="20" height="20">
                                 </button>
                             </div>
                         `;
                     }).join('');
                     
-                    // Додаємо обробники для кнопок видалення
+                    // Add handlers for delete buttons
                     this.setupDeleteButtons();
                 }
             }
         } catch (error) {
-            console.error('Помилка показу слів:', error);
+            console.error('Error showing words:', error);
         }
     }
 
@@ -371,7 +371,7 @@ class DictionaryManager {
         
         deleteButtons.forEach(button => {
             button.addEventListener('click', (e) => {
-                e.stopPropagation(); // Запобігаємо всплиттю події
+                e.stopPropagation(); // Prevent event bubbling
                 const wordId = parseInt(button.dataset.wordId);
                 const wordElement = button.closest('.word-item');
                 const wordText = wordElement.querySelector('.word').textContent;
@@ -382,50 +382,50 @@ class DictionaryManager {
     }
 
     async handleDeleteWord(wordId, wordText) {
-        // Підтвердження видалення
-        const confirmed = confirm(`Ви впевнені, що хочете видалити слово "${wordText}"?`);
+        // Deletion confirmation
+        const confirmed = confirm(`Are you sure you want to delete the word "${wordText}"?`);
         
         if (!confirmed) {
             return;
         }
 
         try {
-            console.log(`Видалення слова: ${wordText} (ID: ${wordId})`);
+            console.log(`Deleting word: ${wordText} (ID: ${wordId})`);
             
-            // Перевіряємо чи існує слово перед видаленням
+            // Check if word exists before deletion
             const existingWord = await databaseManager.getAllWords();
             const wordExists = existingWord.find(w => w.id === wordId);
             
             if (!wordExists) {
-                console.error('Слово не знайдено в базі даних');
-                this.showErrorMessage(`Слово "${wordText}" не знайдено`);
+                console.error('Word not found in database');
+                this.showErrorMessage(`Word "${wordText}" not found`);
                 return;
             }
             
-            // Видаляємо з бази даних
+            // Delete from database
             await databaseManager.deleteWord(wordId);
             
-            // Перевіряємо чи справді видалено
+            // Check if actually deleted
             const remainingWords = await databaseManager.getAllWords();
             const stillExists = remainingWords.find(w => w.id === wordId);
             
             if (stillExists) {
-                console.error('Слово не було видалено з бази даних');
-                this.showErrorMessage(`Помилка видалення слова "${wordText}"`);
+                console.error('Word was not deleted from database');
+                this.showErrorMessage(`Error deleting word "${wordText}"`);
                 return;
             }
             
-            // Показуємо повідомлення про успіх
-            this.showSuccessMessage(`Слово "${wordText}" видалено`);
+            // Show success message
+            this.showSuccessMessage(`Word "${wordText}" deleted`);
             
-            // Оновлюємо відображення
+            // Update display
             this.refresh();
             
-            console.log(`Слово "${wordText}" успішно видалено назавжди`);
+            console.log(`Word "${wordText}" successfully deleted permanently`);
             
         } catch (error) {
-            console.error('Помилка видалення слова:', error);
-            this.showErrorMessage(`Помилка видалення слова "${wordText}"`);
+            console.error('Error deleting word:', error);
+            this.showErrorMessage(`Error deleting word "${wordText}"`);
         }
     }
 
@@ -445,92 +445,92 @@ class DictionaryManager {
         }
     }
 
-    // ======== ІМПОРТ СЛОВНИКА ========
+    // ======== DICTIONARY IMPORT ========
 
-    // Метод для імпорту словника
+    // Method for importing dictionary
     async importDictionary() {
         try {
-            // Створюємо прихований input для файлів
+            // Create hidden file input
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = '.json';
             fileInput.style.display = 'none';
 
-            // Додаємо в DOM
+            // Add to DOM
             document.body.appendChild(fileInput);
 
-            // Обробник вибору файлу
+            // File selection handler
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     await this.handleImportFile(file);
                 }
-                // Видаляємо input після використання
+                // Remove input after use
                 document.body.removeChild(fileInput);
             });
 
-            // Відкриваємо файл picker
+            // Open file picker
             fileInput.click();
 
         } catch (error) {
-            console.error('Помилка імпорту словника:', error);
-            this.showErrorMessage('Помилка імпорту словника');
+            console.error('Dictionary import error:', error);
+            this.showErrorMessage('Dictionary import error');
         }
     }
 
     async handleImportFile(file) {
         try {
-            console.log('Обробка імпорту файлу:', file.name);
+            console.log('Processing import file:', file.name);
 
-            // Перевіряємо тип файлу
+            // Check file type
             if (!file.name.toLowerCase().endsWith('.json')) {
-                this.showErrorMessage('Будь ласка, виберіть JSON файл');
+                this.showErrorMessage('Please select a JSON file');
                 return;
             }
 
-            // Читаємо файл
+            // Read file
             const fileContent = await this.readFileAsText(file);
             
-            // Парсимо JSON
+            // Parse JSON
             let importData;
             try {
                 importData = JSON.parse(fileContent);
             } catch (error) {
-                this.showErrorMessage('Невірний формат JSON файлу');
+                this.showErrorMessage('Invalid JSON file format');
                 return;
             }
 
-            // Валідуємо дані
+            // Validate data
             if (!this.validateImportData(importData)) {
-                this.showErrorMessage('Невірна структура файлу словника');
+                this.showErrorMessage('Invalid dictionary file structure');
                 return;
             }
 
-            // Обробляємо імпортовані слова
+            // Process imported words
             const results = await this.processImportedWords(importData);
             
-            // Показуємо результат
+            // Show result
             const addedWords = results.filter(r => r.status === 'added').length;
             const existingWords = results.filter(r => r.status === 'exists').length;
             
             let message = '';
             if (addedWords > 0) {
-                message = `Імпортовано ${addedWords} нових слів`;
+                message = `Imported ${addedWords} new words`;
                 if (existingWords > 0) {
-                    message += `, ${existingWords} вже існували`;
+                    message += `, ${existingWords} already existed`;
                 }
             } else if (existingWords > 0) {
-                message = 'Всі слова вже були в словнику';
+                message = 'All words were already in dictionary';
             } else {
-                message = 'Не знайдено слів для імпорту';
+                message = 'No words found to import';
             }
 
             this.showSuccessMessage(message);
-            console.log('Імпорт завершено:', { added: addedWords, existing: existingWords });
+            console.log('Import completed:', { added: addedWords, existing: existingWords });
 
         } catch (error) {
-            console.error('Помилка обробки імпорту:', error);
-            this.showErrorMessage('Помилка обробки файлу');
+            console.error('Import processing error:', error);
+            this.showErrorMessage('File processing error');
         }
     }
 
@@ -538,25 +538,25 @@ class DictionaryManager {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = () => reject(new Error('Помилка читання файлу'));
+            reader.onerror = () => reject(new Error('File reading error'));
             reader.readAsText(file, 'utf-8');
         });
     }
 
     validateImportData(data) {
-        // Перевіряємо що це масив
+        // Check if it's an array
         if (!Array.isArray(data)) {
-            console.error('Дані не є масивом');
+            console.error('Data is not an array');
             return false;
         }
 
-        // Перевіряємо що масив не порожній
+        // Check if array is not empty
         if (data.length === 0) {
-            console.error('Масив порожній');
+            console.error('Array is empty');
             return false;
         }
 
-        // Перевіряємо структуру кожного елемента
+        // Check structure of each element
         for (const item of data) {
             if (!this.validateWord(item)) {
                 return false;
@@ -567,15 +567,15 @@ class DictionaryManager {
     }
 
     validateWord(wordObj) {
-        // Перевіряємо що це об'єкт
+        // Check if it's an object
         if (typeof wordObj !== 'object' || wordObj === null) {
-            console.error('Елемент не є об\'єктом:', wordObj);
+            console.error('Element is not an object:', wordObj);
             return false;
         }
 
-        // Перевіряємо наявність поля word
+        // Check for word field presence
         if (!wordObj.word || typeof wordObj.word !== 'string' || wordObj.word.trim() === '') {
-            console.error('Відсутнє або невірне поле word:', wordObj);
+            console.error('Missing or invalid word field:', wordObj);
             return false;
         }
 
@@ -584,21 +584,21 @@ class DictionaryManager {
 
     async processImportedWords(importData) {
         try {
-            // Витягуємо тільки текст слів для додавання
+            // Extract only word text for adding
             const wordsToAdd = importData
                 .filter(item => this.validateWord(item))
                 .map(item => item.word.trim())
                 .filter(word => word.length > 0);
 
-            console.log('Слова для імпорту:', wordsToAdd);
+            console.log('Words to import:', wordsToAdd);
 
-            // Використовуємо існуючий метод додавання слів
+            // Use existing word addition method
             const results = await databaseManager.addWords(wordsToAdd);
 
-            // Оновлюємо відображення
+            // Update display
             this.refresh();
 
-            // Запускаємо фоновий переклад для нових слів
+            // Launch background translation for new words
             const addedWords = results.filter(r => r.status === 'added');
             if (addedWords.length > 0) {
                 setTimeout(() => this.autoTranslateAllWords(), 1000);
@@ -607,39 +607,39 @@ class DictionaryManager {
             return results;
 
         } catch (error) {
-            console.error('Помилка обробки імпортованих слів:', error);
+            console.error('Error processing imported words:', error);
             throw error;
         }
     }
 
-    // ======== ПУБЛІЧНІ МЕТОДИ ========
+    // ======== PUBLIC METHODS ========
 
-    // Метод для оновлення словника з зовні
+    // Method for updating dictionary from outside
     refresh() {
-        console.log('Оновлення словника...');
+        console.log('Updating dictionary...');
         this.updateWordsCount();
     }
 
-    // Метод для додавання слів
+    // Method for adding words
     async addWords(words) {
         if (!words || words.length === 0) {
-            console.log('Немає слів для додавання');
+            console.log('No words to add');
             return [];
         }
 
         try {
             const results = await databaseManager.addWords(words);
             
-            // Підраховуємо результати
+            // Count results
             const added = results.filter(r => r.status === 'added').length;
             const existing = results.filter(r => r.status === 'exists').length;
             
-            console.log(`Додано ${added} нових слів, ${existing} вже існували`);
+            console.log(`Added ${added} new words, ${existing} already existed`);
             
-            // Оновлюємо відображення
+            // Update display
             this.refresh();
             
-            // Запускаємо фоновий переклад для нових слів
+            // Launch background translation for new words
             if (added > 0) {
                 setTimeout(() => this.autoTranslateAllWords(), 1000);
             }
@@ -647,44 +647,44 @@ class DictionaryManager {
             return results;
             
         } catch (error) {
-            console.error('Помилка додавання слів:', error);
+            console.error('Error adding words:', error);
             throw error;
         }
     }
 
-    // Метод для видалення слова
+    // Method for deleting a word
     async deleteWord(id) {
         try {
             await databaseManager.deleteWord(id);
-            console.log('Слово видалено, ID:', id);
+            console.log('Word deleted, ID:', id);
             this.refresh();
             return true;
         } catch (error) {
-            console.error('Помилка видалення слова:', error);
+            console.error('Error deleting word:', error);
             throw error;
         }
     }
 
-    // Метод для очищення всього словника
+    // Method for clearing entire dictionary
     async clearAllWords() {
-        if (!confirm('Ви впевнені, що хочете видалити всі слова зі словника?')) {
+        if (!confirm('Are you sure you want to delete all words from the dictionary?')) {
             return false;
         }
 
         try {
             await databaseManager.clearAllWords();
-            console.log('Всі слова видалено');
-            this.showSuccessMessage('Всі слова видалено зі словника');
+            console.log('All words deleted');
+            this.showSuccessMessage('All words deleted from dictionary');
             this.refresh();
             return true;
         } catch (error) {
-            console.error('Помилка очищення словника:', error);
-            this.showErrorMessage('Помилка очищення словника');
+            console.error('Error clearing dictionary:', error);
+            this.showErrorMessage('Error clearing dictionary');
             throw error;
         }
     }
 
-    // Метод для пошуку слів
+    // Method for searching words
     async searchWords(query) {
         try {
             const allWords = await databaseManager.getAllWords();
@@ -700,17 +700,17 @@ class DictionaryManager {
             );
             
         } catch (error) {
-            console.error('Помилка пошуку слів:', error);
+            console.error('Error searching words:', error);
             return [];
         }
     }
 
-    // Метод для отримання статистики
+    // Method for getting statistics
     async getStats() {
         try {
             return await databaseManager.getStats();
         } catch (error) {
-            console.error('Помилка отримання статистики:', error);
+            console.error('Error getting statistics:', error);
             return {
                 total: 0,
                 new: 0,
@@ -719,15 +719,15 @@ class DictionaryManager {
         }
     }
 
-    // Метод для примусового перекладу конкретного слова
+    // Method for forced translation of specific word
     async retranslateWord(wordId) {
         try {
             const word = await databaseManager.getWordById(wordId);
             if (!word) {
-                throw new Error('Слово не знайдено');
+                throw new Error('Word not found');
             }
 
-            this.updateTranslationStatus(`Перекладаємо: ${word.word}...`);
+            this.updateTranslationStatus(`Translating: ${word.word}...`);
             
             const translation = await this.translateWord(word.word);
             
@@ -735,7 +735,7 @@ class DictionaryManager {
                 translation: translation
             });
             
-            console.log(`Переклад оновлено: ${word.word} -> ${translation}`);
+            console.log(`Translation updated: ${word.word} -> ${translation}`);
             
             this.hideTranslationStatus();
             this.refresh();
@@ -743,19 +743,19 @@ class DictionaryManager {
             return translation;
             
         } catch (error) {
-            console.error('Помилка перекладу слова:', error);
+            console.error('Error translating word:', error);
             this.hideTranslationStatus();
             throw error;
         }
     }
 
-    // Метод для експорту словника
+    // Method for exporting dictionary
     async exportDictionary() {
         try {
             const allWords = await databaseManager.getAllWords();
             
             if (allWords.length === 0) {
-                this.showErrorMessage('Словник порожній');
+                this.showErrorMessage('Dictionary is empty');
                 return false;
             }
             
@@ -773,24 +773,24 @@ class DictionaryManager {
             
             URL.revokeObjectURL(url);
             
-            this.showSuccessMessage(`Словник експортовано (${allWords.length} слів)`);
-            console.log('Словник експортовано');
+            this.showSuccessMessage(`Dictionary exported (${allWords.length} words)`);
+            console.log('Dictionary exported');
             return true;
             
         } catch (error) {
-            console.error('Помилка експорту словника:', error);
-            this.showErrorMessage('Помилка експорту словника');
+            console.error('Error exporting dictionary:', error);
+            this.showErrorMessage('Error exporting dictionary');
             throw error;
         }
     }
 
-    // Метод для перевірки стану перекладу
+    // Method for checking translation state
     isTranslating() {
         return this.translationInProgress;
     }
 }
 
-// Створюємо глобальний екземпляр
-console.log('Створюємо DictionaryManager...');
+// Create global instance
+console.log('Creating DictionaryManager...');
 const flashcardsManager = new DictionaryManager();
-console.log('DictionaryManager створено!');
+console.log('DictionaryManager created!');
