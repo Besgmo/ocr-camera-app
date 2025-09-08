@@ -1,6 +1,6 @@
-console.log('=== camera-words.js ЗАВАНТАЖЕНО ===');
+console.log('=== camera-words.js LOADED ===');
 
-// Camera Words Module - функціонал камери для сторінки словника
+// Camera Words Module - camera functionality for dictionary page
 class CameraWordsManager {
     constructor() {
         this.photoInput = null;
@@ -13,7 +13,7 @@ class CameraWordsManager {
     }
 
     init() {
-        console.log('CameraWordsManager ініціалізується...');
+        console.log('CameraWordsManager initializing...');
         
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.setupCameraWords());
@@ -21,47 +21,47 @@ class CameraWordsManager {
             this.setupCameraWords();
         }
         
-        console.log('CameraWordsManager готовий!');
+        console.log('CameraWordsManager ready!');
     }
 
     setupCameraWords() {
-        // Отримуємо елементи
+        // Get elements
         this.photoInput = document.getElementById('photo-input');
         this.canvas = document.getElementById('canvas');
         this.grabWordsBtn = document.getElementById('grab-words');
         this.statusEl = document.getElementById('ocr-status');
 
         if (!this.photoInput || !this.canvas || !this.grabWordsBtn) {
-            console.error('Не всі елементи камери знайдено');
+            console.error('Not all camera elements found');
             return;
         }
 
-        // Налаштовуємо обробники подій
+        // Set up event handlers
         this.setupEventListeners();
         
-        console.log('Camera words налаштовано');
+        console.log('Camera words configured');
     }
 
     setupEventListeners() {
-        // Кнопка Grab Words
+        // Grab Words button
         this.grabWordsBtn.addEventListener('click', () => this.openPhotoSelector());
         
-        // Вибір фото
+        // Photo selection
         this.photoInput.addEventListener('change', (e) => this.handlePhotoSelect(e));
         
-        // Drag & Drop на всю сторінку
+        // Drag & Drop on entire page
         this.setupDragAndDrop();
         
-        console.log('Camera words event listeners налаштовано');
+        console.log('Camera words event listeners configured');
     }
 
     openPhotoSelector() {
-        console.log('Відкриття вибору фото...');
+        console.log('Opening photo selection...');
         
-        this.updateStatus('Виберіть фото або зробіть нове...', 'default');
+        this.updateStatus('Select photo or take a new one...', 'default');
         this.showStatus();
         
-        // Відкриваємо file picker
+        // Open file picker
         this.photoInput.click();
     }
 
@@ -69,16 +69,16 @@ class CameraWordsManager {
         const file = event.target.files[0];
         
         if (!file) {
-            console.log('Файл не вибрано');
+            console.log('No file selected');
             this.hideStatus();
             return;
         }
         
-        console.log('Вибрано файл:', file.name, 'Розмір:', file.size, 'байт');
+        console.log('File selected:', file.name, 'Size:', file.size, 'bytes');
         
         if (!file.type.startsWith('image/')) {
-            console.error('Вибраний файл не є зображенням');
-            this.updateStatus('Будь ласка, виберіть зображення', 'error');
+            console.error('Selected file is not an image');
+            this.updateStatus('Please select an image', 'error');
             setTimeout(() => this.hideStatus(), 3000);
             return;
         }
@@ -86,53 +86,53 @@ class CameraWordsManager {
         try {
             await this.processPhoto(file);
         } catch (error) {
-            console.error('Помилка обробки фото:', error);
-            this.updateStatus('Помилка обробки фото', 'error');
+            console.error('Photo processing error:', error);
+            this.updateStatus('Photo processing error', 'error');
             setTimeout(() => this.hideStatus(), 3000);
         } finally {
-            // Очищуємо input для можливості вибрати той же файл знову
+            // Clear input to allow selecting the same file again
             this.photoInput.value = '';
         }
     }
 
     async processPhoto(file) {
         if (this.isProcessing) {
-            console.log('Обробка вже відбувається...');
+            console.log('Processing already in progress...');
             return;
         }
 
-        console.log('=== ОБРОБКА ФОТО ===');
+        console.log('=== PHOTO PROCESSING ===');
         
         try {
             this.isProcessing = true;
             this.grabWordsBtn.disabled = true;
-            this.grabWordsBtn.textContent = 'Обробка...';
+            this.grabWordsBtn.textContent = 'Processing...';
             
-            this.updateStatus('Завантаження фото...', 'processing');
+            this.updateStatus('Loading photo...', 'processing');
             
-            // Створюємо об'єкт Image для завантаження
+            // Create Image object for loading
             const img = new Image();
             
-            // Обробляємо зображення після завантаження
+            // Process image after loading
             await new Promise((resolve, reject) => {
                 img.onload = () => {
                     try {
-                        console.log('Фото завантажено:', img.width, 'x', img.height);
+                        console.log('Photo loaded:', img.width, 'x', img.height);
                         
-                        // Встановлюємо розміри canvas відповідно до зображення
+                        // Set canvas dimensions according to image
                         this.canvas.width = img.width;
                         this.canvas.height = img.height;
                         
                         const context = this.canvas.getContext('2d');
                         
-                        // Малюємо зображення на canvas
+                        // Draw image on canvas
                         context.drawImage(img, 0, 0);
                         
-                        console.log('=== ДЕТАЛЬНА ІНФОРМАЦІЯ ===');
-                        console.log('Розміри фото:', img.width, 'x', img.height);
-                        console.log('Canvas розміри:', this.canvas.width, 'x', this.canvas.height);
-                        console.log('Мегапікселі:', (img.width * img.height / 1000000).toFixed(2), 'MP');
-                        console.log('Розмір файлу:', (file.size / 1024).toFixed(2), 'KB');
+                        console.log('=== DETAILED INFORMATION ===');
+                        console.log('Photo dimensions:', img.width, 'x', img.height);
+                        console.log('Canvas dimensions:', this.canvas.width, 'x', this.canvas.height);
+                        console.log('Megapixels:', (img.width * img.height / 1000000).toFixed(2), 'MP');
+                        console.log('File size:', (file.size / 1024).toFixed(2), 'KB');
                         
                         resolve();
                     } catch (error) {
@@ -141,34 +141,34 @@ class CameraWordsManager {
                 };
                 
                 img.onerror = () => {
-                    reject(new Error('Не вдалося завантажити фото'));
+                    reject(new Error('Failed to load photo'));
                 };
                 
-                // Запускаємо завантаження зображення
+                // Start image loading
                 img.src = URL.createObjectURL(file);
             });
             
-            // Запускаємо OCR обробку
+            // Start OCR processing
             if (typeof ocrProcessor !== 'undefined') {
-                this.updateStatus('Розпізнавання тексту...', 'processing');
+                this.updateStatus('Recognizing text...', 'processing');
                 await ocrProcessor.processImage(this.canvas);
             } else {
-                console.error('OCR процесор не доступний');
-                throw new Error('OCR процесор не знайдено');
+                console.error('OCR processor not available');
+                throw new Error('OCR processor not found');
             }
             
-            console.log('=== ФОТО ОБРОБЛЕНО ===');
+            console.log('=== PHOTO PROCESSED ===');
             
         } catch (error) {
-            console.error('Помилка обробки фото:', error);
-            this.updateStatus('Помилка обробки фото', 'error');
+            console.error('Photo processing error:', error);
+            this.updateStatus('Photo processing error', 'error');
             throw error;
         } finally {
             this.isProcessing = false;
             this.grabWordsBtn.disabled = false;
             this.grabWordsBtn.textContent = 'Grab words';
             
-            // Ховаємо статус через деякий час якщо не було помилки
+            // Hide status after some time if there was no error
             setTimeout(() => {
                 if (this.statusEl && !this.statusEl.classList.contains('error')) {
                     this.hideStatus();
@@ -180,12 +180,12 @@ class CameraWordsManager {
     setupDragAndDrop() {
         const dropZone = document.body;
         
-        // Запобігаємо стандартній поведінці браузера
+        // Prevent default browser behavior
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, this.preventDefaults, false);
         });
         
-        // Додаємо візуальний фідбек при перетягуванні
+        // Add visual feedback during drag
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => this.highlightDropZone(), false);
         });
@@ -194,10 +194,10 @@ class CameraWordsManager {
             dropZone.addEventListener(eventName, () => this.unhighlightDropZone(), false);
         });
         
-        // Обробляємо dropped файли
+        // Handle dropped files
         dropZone.addEventListener('drop', (e) => this.handleDrop(e), false);
         
-        console.log('Drag & drop налаштовано');
+        console.log('Drag & drop configured');
     }
 
     preventDefaults(e) {
@@ -207,7 +207,7 @@ class CameraWordsManager {
 
     highlightDropZone() {
         document.body.style.backgroundColor = 'rgba(1, 245, 95, 0.1)';
-        this.updateStatus('Відпустіть фото для обробки...', 'processing');
+        this.updateStatus('Release photo to process...', 'processing');
         this.showStatus();
     }
 
@@ -224,13 +224,13 @@ class CameraWordsManager {
         
         if (files.length > 0) {
             const file = files[0];
-            console.log('Файл перетягнуто:', file.name);
+            console.log('File dropped:', file.name);
             
             if (file.type.startsWith('image/')) {
                 this.handlePhotoSelect({ target: { files: [file] } });
             } else {
-                console.error('Перетягнутий файл не є зображенням');
-                this.updateStatus('Будь ласка, перетягніть зображення', 'error');
+                console.error('Dropped file is not an image');
+                this.updateStatus('Please drop an image', 'error');
                 setTimeout(() => this.hideStatus(), 3000);
             }
         }
@@ -243,13 +243,13 @@ class CameraWordsManager {
                 statusText.textContent = message;
             }
             
-            // Оновлюємо класи
+            // Update classes
             this.statusEl.className = `ocr-status ${type}`;
             
             console.log(`OCR Status (${type}):`, message);
         }
         
-        // Також оновлюємо OCR процесор якщо доступний
+        // Also update OCR processor if available
         if (typeof ocrProcessor !== 'undefined') {
             ocrProcessor.updateStatus(message, type);
         }
@@ -267,14 +267,14 @@ class CameraWordsManager {
         }
     }
 
-    // Публічні методи для використання з інших модулів
+    // Public methods for use with other modules
 
     reset() {
         this.hideStatus();
         this.isProcessing = false;
         this.grabWordsBtn.disabled = false;
         this.grabWordsBtn.textContent = 'Grab words';
-        console.log('CameraWordsManager скинуто');
+        console.log('CameraWordsManager reset');
     }
 
     isProcessingPhoto() {
@@ -282,7 +282,7 @@ class CameraWordsManager {
     }
 }
 
-// Створюємо глобальний екземпляр
-console.log('Створюємо CameraWordsManager...');
+// Create global instance
+console.log('Creating CameraWordsManager...');
 const cameraWordsManager = new CameraWordsManager();
-console.log('CameraWordsManager створено!');
+console.log('CameraWordsManager created!');
