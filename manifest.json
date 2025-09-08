@@ -1,13 +1,13 @@
 {
-  "name": "OCR Dictionary App",
-  "short_name": "OD",
+  "name": "Words graber",
+  "short_name": "Words graber",
   "description": "OCR-based dictionary app with camera text recognition",
-  "start_url": "/",
+  "start_url": "/ocr-camera-app/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#01F55F",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "/ocr-camera-app/",
   "lang": "en",
   "categories": ["education", "productivity", "utilities"],
   "screenshots": [
@@ -79,7 +79,7 @@
       "name": "Take Photo",
       "short_name": "Camera",
       "description": "Take a photo to extract text",
-      "url": "/?action=camera",
+      "url": "/ocr-camera-app/?action=camera",
       "icons": [
         {
           "src": "icons/camera-shortcut.png",
