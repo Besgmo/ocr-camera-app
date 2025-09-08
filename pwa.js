@@ -51,7 +51,7 @@ class PWAManager {
         }
 
         try {
-            const registration = await navigator.serviceWorker.register('/sw.js');
+            const registration = await navigator.serviceWorker.register('/ocr-camera-app/sw.js');
             console.log('SW registered:', registration);
             
             // Перевіряємо оновлення
