@@ -1,6 +1,6 @@
-console.log('=== text.js ЗАВАНТАЖЕНО ===');
+console.log('=== text.js LOADED ===');
 
-// Text Processing Module - конвертація тексту в чіпси слів з попапом
+// Text Processing Module - text conversion to word chips with popup
 class TextProcessor {
     constructor() {
         this.selectedWords = new Set();
@@ -14,29 +14,29 @@ class TextProcessor {
     }
 
     init() {
-        console.log('TextProcessor ініціалізується...');
+        console.log('TextProcessor initializing...');
         this.setupPopupEventListeners();
-        console.log('TextProcessor готовий!');
+        console.log('TextProcessor ready!');
     }
 
     setupPopupEventListeners() {
-        // Попап елементи
+        // Popup elements
         this.popupEl = document.getElementById('words-popup');
         this.popupChipsContainer = document.getElementById('popup-word-chips');
         this.popupSaveBtn = document.getElementById('popup-save');
         this.popupBackBtn = document.getElementById('popup-back');
 
-        // Кнопка "Зберегти"
+        // "Save" button
         if (this.popupSaveBtn) {
             this.popupSaveBtn.addEventListener('click', () => this.saveSelectedWords());
         }
 
-        // Кнопка "Назад"
+        // "Back" button
         if (this.popupBackBtn) {
             this.popupBackBtn.addEventListener('click', () => this.closePopup());
         }
 
-        // Закриття по кліку на overlay
+        // Close on overlay click
         if (this.popupEl) {
             this.popupEl.addEventListener('click', (e) => {
                 if (e.target === this.popupEl) {
@@ -45,83 +45,83 @@ class TextProcessor {
             });
         }
 
-        // Закриття по Escape
+        // Close on Escape
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.popupEl && this.popupEl.style.display !== 'none') {
                 this.closePopup();
             }
         });
         
-        console.log('Popup event listeners налаштовано');
+        console.log('Popup event listeners configured');
     }
 
     processText(ocrResult) {
-        console.log('=== ОБРОБКА ТЕКСТУ ===');
-        console.log('textProcessor.processText викликано з:', ocrResult);
+        console.log('=== TEXT PROCESSING ===');
+        console.log('textProcessor.processText called with:', ocrResult);
         
         if (!ocrResult || !ocrResult.words || ocrResult.words.length === 0) {
-            console.log('Немає слів для обробки');
+            console.log('No words to process');
             return;
         }
 
-        console.log('Є слова для обробки:', ocrResult.words);
+        console.log('There are words to process:', ocrResult.words);
 
-        // Очищуємо попередні результати
+        // Clear previous results
         this.clearSelection();
         
-        // Зберігаємо слова
+        // Save words
         this.allWords = [...ocrResult.words];
         
-        console.log('Слова для обробки збережено:', this.allWords);
+        console.log('Words for processing saved:', this.allWords);
         
-        // Показуємо попап з чіпсами
+        // Show popup with chips
         this.showPopup();
         
-        console.log('processText завершено');
+        console.log('processText completed');
     }
 
     showPopup() {
         if (!this.popupEl || !this.popupChipsContainer) {
-            console.error('Попап не знайдено');
+            console.error('Popup not found');
             return;
         }
 
-        // Створюємо чіпси в попапі
+        // Create chips in popup
         this.createWordChips(this.allWords);
         
-        // Показуємо попап
+        // Show popup
         this.popupEl.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Блокуємо скрол фону
+        document.body.style.overflow = 'hidden'; // Block background scroll
         
-        console.log('Попап показано з', this.allWords.length, 'словами');
+        console.log('Popup shown with', this.allWords.length, 'words');
     }
 
     hidePopup() {
         if (this.popupEl) {
             this.popupEl.style.display = 'none';
-            document.body.style.overflow = ''; // Відновлюємо скрол
-            console.log('Попап приховано');
+            document.body.style.overflow = ''; // Restore scroll
+            console.log('Popup hidden');
         }
     }
 
     createWordChips(words) {
         if (!this.popupChipsContainer) {
-            console.error('Контейнер чіпсів в попапі не знайдено');
+            console.error('Chips container in popup not found');
             return;
         }
         
-        console.log('Створення чіпсів для слів:', words);
+        console.log('Creating chips for words:', words);
         
-        // Очищуємо контейнер
+        // Clear container
         this.popupChipsContainer.innerHTML = '';
         
-        // Створюємо чіп для кожного слова
+        // Create chip for each word
         words.forEach((word, index) => {
             const chip = this.createChip(word, index);
             this.popupChipsContainer.appendChild(chip);
         });
         
-        console.log(`Створено ${words.length} чіпсів в попапі`);
+        console.log(`Created ${words.length} chips in popup`);
     }
 
     createChip(word, index) {
@@ -135,7 +135,7 @@ class TextProcessor {
             <span class="chip-check">✓</span>
         `;
         
-        // Додаємо обробник кліку
+        // Add click handler
         chip.addEventListener('click', () => this.toggleWordSelection(word, chip));
         
         return chip;
@@ -143,19 +143,19 @@ class TextProcessor {
 
     toggleWordSelection(word, chipElement) {
         if (this.selectedWords.has(word)) {
-            // Знімаємо вибір
+            // Deselect
             this.selectedWords.delete(word);
             chipElement.classList.remove('selected');
-            console.log('Знято вибір:', word);
+            console.log('Deselected:', word);
         } else {
-            // Додаємо до вибраних
+            // Add to selected
             this.selectedWords.add(word);
             chipElement.classList.add('selected');
-            console.log('Додано до вибраних:', word);
+            console.log('Added to selected:', word);
         }
         
         this.updateSaveButton();
-        console.log('Обрані слова:', Array.from(this.selectedWords));
+        console.log('Selected words:', Array.from(this.selectedWords));
     }
 
     updateSaveButton() {
@@ -164,10 +164,10 @@ class TextProcessor {
         if (this.popupSaveBtn) {
             if (selectedCount > 0) {
                 this.popupSaveBtn.disabled = false;
-                this.popupSaveBtn.textContent = `Зберегти (${selectedCount})`;
+                this.popupSaveBtn.textContent = `Save (${selectedCount})`;
             } else {
                 this.popupSaveBtn.disabled = true;
-                this.popupSaveBtn.textContent = 'Зберегти';
+                this.popupSaveBtn.textContent = 'Save';
             }
         }
     }
@@ -175,122 +175,122 @@ class TextProcessor {
     clearSelection() {
         this.selectedWords.clear();
         
-        // Оновлюємо візуальний стан всіх чіпсів
+        // Update visual state of all chips
         if (this.popupChipsContainer) {
             const chips = this.popupChipsContainer.querySelectorAll('.word-chip');
             chips.forEach(chip => chip.classList.remove('selected'));
         }
         
         this.updateSaveButton();
-        console.log('Очищено вибір слів');
+        console.log('Word selection cleared');
     }
 
     async saveSelectedWords() {
         const selectedWordsArray = Array.from(this.selectedWords);
         
         if (selectedWordsArray.length === 0) {
-            console.log('Немає обраних слів для додавання');
+            console.log('No selected words to add');
             return;
         }
         
-        console.log('=== ДОДАВАННЯ СЛІВ ===');
-        console.log('Додаємо слова:', selectedWordsArray);
+        console.log('=== ADDING WORDS ===');
+        console.log('Adding words:', selectedWordsArray);
         
         try {
-            // Зберігаємо слова в базу даних
+            // Save words to database
             const results = await databaseManager.addWords(selectedWordsArray);
             
-            // Підраховуємо результати
+            // Count results
             const added = results.filter(r => r.status === 'added').length;
             const existing = results.filter(r => r.status === 'exists').length;
             const errors = results.filter(r => r.status === 'error').length;
             
             let message = '';
-            if (added > 0) message += `Додано ${added} нових слів. `;
-            if (existing > 0) message += `${existing} слів вже були в словнику. `;
-            if (errors > 0) message += `${errors} помилок при додаванні.`;
+            if (added > 0) message += `Added ${added} new words. `;
+            if (existing > 0) message += `${existing} words were already in dictionary. `;
+            if (errors > 0) message += `${errors} errors while adding.`;
             
-            // Використовуємо уніфіковану функцію показу повідомлень
-            this.showNotification(message || 'Слова оброблено', 'success');
+            // Use unified message display function
+            this.showNotification(message || 'Words processed', 'success');
             
-            // Закриваємо попап і залишаємось на сторінці
+            // Close popup and stay on page
             this.closePopup();
             
-            // Оновлюємо відображення словника
+            // Update dictionary display
             if (typeof flashcardsManager !== 'undefined') {
                 flashcardsManager.refresh();
             }
             
-            // Автоматично перекладаємо нові слова в фоновому режимі
+            // Automatically translate new words in background
             if (added > 0) {
                 this.backgroundTranslateNewWords(selectedWordsArray);
             }
             
         } catch (error) {
-            console.error('Помилка додавання слів:', error);
-            this.showNotification('Помилка при збереженні слів', 'error');
+            console.error('Error adding words:', error);
+            this.showNotification('Error while saving words', 'error');
         }
     }
 
     closePopup() {
-        // Просто закриваємо попап без перенаправлення
+        // Simply close popup without redirection
         this.hidePopup();
         
-        // Скидаємо OCR статус якщо є
+        // Reset OCR status if exists
         if (typeof ocrProcessor !== 'undefined') {
             ocrProcessor.reset();
         }
         
-        // Скидаємо camera-words статус якщо є
+        // Reset camera-words status if exists
         if (typeof cameraWordsManager !== 'undefined') {
             cameraWordsManager.reset();
         }
     }
 
     async backgroundTranslateNewWords(newWords) {
-        console.log('Фоновий переклад нових слів:', newWords);
+        console.log('Background translation of new words:', newWords);
         
         try {
             for (let i = 0; i < newWords.length; i++) {
                 const word = newWords[i];
                 
                 try {
-                    // Отримуємо слово з бази для перевірки чи потрібен переклад
+                    // Get word from database to check if translation is needed
                     const wordFromDB = await databaseManager.getWordByText(word);
                     
-                    if (wordFromDB && (!wordFromDB.translation || wordFromDB.translation === 'Переклад недоступний')) {
+                    if (wordFromDB && (!wordFromDB.translation || wordFromDB.translation === 'Translation unavailable')) {
                         const translation = await this.translateWord(word);
                         
-                        // Оновлюємо переклад в базі
+                        // Update translation in database
                         await databaseManager.updateWord(wordFromDB.id, {
                             translation: translation
                         });
                         
-                        console.log(`Фоновий переклад завершено: ${word} -> ${translation}`);
+                        console.log(`Background translation completed: ${word} -> ${translation}`);
                         
-                        // Оновлюємо відображення словника після кожного перекладу
+                        // Update dictionary display after each translation
                         if (typeof flashcardsManager !== 'undefined') {
                             flashcardsManager.refresh();
                         }
                     }
                     
                 } catch (error) {
-                    console.error('Помилка фонового перекладу слова:', word, error);
+                    console.error('Background translation error for word:', word, error);
                 }
                 
-                // Затримка між запитами
+                // Delay between requests
                 if (i < newWords.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
             }
             
         } catch (error) {
-            console.error('Помилка фонового перекладу:', error);
+            console.error('Background translation error:', error);
         }
     }
 
     async translateWord(word) {
-        console.log('Перекладаємо слово через MyMemory API:', word);
+        console.log('Translating word through MyMemory API:', word);
         
         try {
             const encodedWord = encodeURIComponent(word.trim());
@@ -317,30 +317,30 @@ class TextProcessor {
                     translation.toLowerCase() !== word.toLowerCase() &&
                     !translation.includes('MYMEMORY WARNING')) {
                     
-                    console.log(`API переклад: ${word} -> ${translation}`);
+                    console.log(`API translation: ${word} -> ${translation}`);
                     return translation.trim();
                 }
             }
             
-            throw new Error('Неякісний переклад');
+            throw new Error('Poor quality translation');
             
         } catch (error) {
-            console.error('Помилка перекладу:', word, error);
-            return 'Помилка перекладу';
+            console.error('Translation error:', word, error);
+            return 'Translation error';
         }
     }
 
-    // ======== УНІФІКОВАНІ ФУНКЦІЇ ПОКАЗУ ПОВІДОМЛЕНЬ ========
+    // ======== UNIFIED MESSAGE DISPLAY FUNCTIONS ========
 
     showNotification(message, type = 'success') {
-        // Створюємо уніфіковане повідомлення з чорним фоном і білим текстом
+        // Create unified message with black background and white text
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
-        // Видаляємо через 3 секунди
+        // Remove after 3 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.animation = 'fadeOut 0.3s ease forwards';
@@ -363,7 +363,7 @@ class TextProcessor {
         this.clearSelection();
         this.hidePopup();
         this.allWords = [];
-        console.log('TextProcessor скинуто');
+        console.log('TextProcessor reset');
     }
 
     getSelectedWords() {
@@ -371,7 +371,7 @@ class TextProcessor {
     }
 }
 
-// Створюємо глобальний екземпляр обробника тексту
-console.log('Створюємо TextProcessor...');
+// Create global instance of text processor
+console.log('Creating TextProcessor...');
 const textProcessor = new TextProcessor();
-console.log('TextProcessor створено!');
+console.log('TextProcessor created!');
