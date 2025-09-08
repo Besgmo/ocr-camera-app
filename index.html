@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Sticky хедер -->
+    <!-- Sticky header -->
     <div id="dictionary-header" class="dictionary-header">
         <div class="header-left">
             <img src="icons/fi_book.svg" alt="Dictionary" width="24" height="24">
@@ -20,35 +20,35 @@
         </div>
     </div>
     
-    <!-- Контент словника -->
+    <!-- Dictionary content -->
     <div id="dictionary-content" class="dictionary-content">
         <div id="translation-status" class="translation-status" style="display: none;"></div>
         <div class="words-list" id="words-list"></div>
     </div>
     
-    <!-- Кнопка Grab Words -->
+    <!-- Grab Words button -->
     <button id="grab-words" class="btn btn-primary dictionary-grab-words">
         Grab words
     </button>
     
-    <!-- Прихований input для вибору фото -->
+    <!-- Hidden input for photo selection -->
     <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;">
     
-    <!-- Прихований canvas для обробки -->
+    <!-- Hidden canvas for processing -->
     <canvas id="canvas" style="display: none;"></canvas>
     
-    <!-- Статус обробки OCR -->
+    <!-- OCR processing status -->
     <div id="ocr-status" class="ocr-status" style="display: none;">
         <div class="status-content">
-            <div class="status-text">Готово до фото</div>
+            <div class="status-text">Ready for photo</div>
             <div class="status-progress"></div>
         </div>
     </div>
 
-    <!-- Статус для OCR процесора - ПРИХОВАНО -->
-    <div id="status" class="status" style="display: none;">Готово до вибору фото</div>
+    <!-- Status for OCR processor - HIDDEN -->
+    <div id="status" class="status" style="display: none;">Ready to select photo</div>
     
-    <!-- Попап для вибору слів -->
+    <!-- Word selection popup -->
     <div id="words-popup" class="popup-overlay" style="display: none;">
         <div class="popup-content">
             <div class="popup-header">
@@ -57,8 +57,8 @@
             <div class="popup-body">
                 <div id="popup-word-chips" class="word-chips"></div>
                 <div class="popup-actions">
-                    <button id="popup-save" class="btn btn-primary btn-full" disabled>Зберегти</button>
-                    <button id="popup-back" class="btn btn-secondary btn-full">Назад</button>
+                    <button id="popup-save" class="btn btn-primary btn-full" disabled>Save</button>
+                    <button id="popup-back" class="btn btn-secondary btn-full">Back</button>
                 </div>
             </div>
         </div>
@@ -67,9 +67,10 @@
     <!-- Tesseract.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
-    <!-- Наші скрипти в правильному порядку -->
+    <!-- Our scripts in correct order -->
     <script src="database.js"></script>
     <script src="flashcards.js"></script>
+    <script src="token-manager.js"></script>
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="camera-words.js"></script>
