@@ -147,11 +147,21 @@ class TextProcessor {
             this.selectedWords.delete(word);
             chipElement.classList.remove('selected');
             console.log('Deselected:', word);
+            
+            // М'яка вібрація при відміні вибору
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.customVibration('light', 20);
+            }
         } else {
             // Add to selected
             this.selectedWords.add(word);
             chipElement.classList.add('selected');
             console.log('Added to selected:', word);
+            
+            // Вібрація при виборі слова
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.wordSelected();
+            }
         }
         
         this.updateSaveButton();
@@ -210,8 +220,22 @@ class TextProcessor {
             if (existing > 0) message += `${existing} words were already in dictionary. `;
             if (errors > 0) message += `${errors} errors while adding.`;
             
+            // Вібрація залежно від результату
+            if (typeof hapticManager !== 'undefined') {
+                if (added > 0) {
+                    // Адаптивна вібрація залежно від кількості доданих слів
+                    hapticManager.wordsAdded(added);
+                } else if (existing > 0 && errors === 0) {
+                    // М'яка вібрація для існуючих слів (не помилка)
+                    hapticManager.select();
+                } else if (errors > 0) {
+                    // Помилка при додаванні
+                    hapticManager.error();
+                }
+            }
+            
             // Use unified message display function
-            this.showNotification(message || 'Words processed', 'success');
+            this.showNotification(message || 'Words processed', added > 0 || existing > 0 ? 'success' : 'error');
             
             // Close popup and stay on page
             this.closePopup();
@@ -229,6 +253,11 @@ class TextProcessor {
         } catch (error) {
             console.error('Error adding words:', error);
             this.showNotification('Error while saving words', 'error');
+            
+            // Вібрація помилки
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.error();
+            }
         }
     }
 
@@ -251,6 +280,8 @@ class TextProcessor {
         console.log('Background translation of new words:', newWords);
         
         try {
+            let translatedCount = 0;
+            
             for (let i = 0; i < newWords.length; i++) {
                 const word = newWords[i];
                 
@@ -267,6 +298,7 @@ class TextProcessor {
                         });
                         
                         console.log(`Background translation completed: ${word} -> ${translation}`);
+                        translatedCount++;
                         
                         // Update dictionary display after each translation
                         if (typeof flashcardsManager !== 'undefined') {
@@ -282,6 +314,11 @@ class TextProcessor {
                 if (i < newWords.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 300));
                 }
+            }
+            
+            // Вібрація при завершенні перекладу
+            if (typeof hapticManager !== 'undefined' && translatedCount > 0) {
+                hapticManager.translationComplete();
             }
             
         } catch (error) {
@@ -315,7 +352,9 @@ class TextProcessor {
                 if (translation && 
                     translation.trim().length > 0 &&
                     translation.toLowerCase() !== word.toLowerCase() &&
-                    !translation.includes('MYMEMORY WARNING')) {
+                    !translation.includes('MYMEMORY WARNING') &&
+                    !translation.includes('API LIMIT EXCEEDED') &&
+                    !translation.includes('NO QUERY SPECIFIED')) {
                     
                     console.log(`API translation: ${word} -> ${translation}`);
                     return translation.trim();
@@ -339,6 +378,11 @@ class TextProcessor {
         notification.textContent = message;
         
         document.body.appendChild(notification);
+        
+        // Вібрація для повідомлення
+        if (typeof hapticManager !== 'undefined') {
+            hapticManager.notificationVibration(type);
+        }
         
         // Remove after 3 seconds
         setTimeout(() => {
@@ -368,6 +412,77 @@ class TextProcessor {
 
     getSelectedWords() {
         return Array.from(this.selectedWords);
+    }
+
+    // ======== ДОДАТКОВІ МЕТОДИ ДЛЯ HAPTIC FEEDBACK ========
+
+    // Метод для масового вибору слів (наприклад, "Select All")
+    selectAllWords() {
+        if (!this.popupChipsContainer) return;
+        
+        const chips = this.popupChipsContainer.querySelectorAll('.word-chip');
+        let selectedCount = 0;
+        
+        chips.forEach(chip => {
+            const word = chip.dataset.word;
+            if (word && !this.selectedWords.has(word)) {
+                this.selectedWords.add(word);
+                chip.classList.add('selected');
+                selectedCount++;
+            }
+        });
+        
+        if (selectedCount > 0) {
+            // Прогресивна вібрація для масового вибору
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.sequentialVibration(selectedCount, this.allWords.length);
+            }
+        }
+        
+        this.updateSaveButton();
+        console.log(`Selected all ${selectedCount} words`);
+    }
+
+    // Метод для скасування всіх виборів
+    deselectAllWords() {
+        const previousCount = this.selectedWords.size;
+        this.clearSelection();
+        
+        if (previousCount > 0) {
+            // М'яка вібрація при скасуванні всіх виборів
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.customVibration('light', 30);
+            }
+        }
+        
+        console.log(`Deselected all words (was ${previousCount})`);
+    }
+
+    // Швидкий вибір слів за довжиною
+    selectWordsByLength(minLength = 3, maxLength = 15) {
+        if (!this.popupChipsContainer) return;
+        
+        const chips = this.popupChipsContainer.querySelectorAll('.word-chip');
+        let selectedCount = 0;
+        
+        chips.forEach(chip => {
+            const word = chip.dataset.word;
+            if (word && word.length >= minLength && word.length <= maxLength && !this.selectedWords.has(word)) {
+                this.selectedWords.add(word);
+                chip.classList.add('selected');
+                selectedCount++;
+            }
+        });
+        
+        if (selectedCount > 0) {
+            // Адаптивна вібрація залежно від кількості вибраних слів
+            if (typeof hapticManager !== 'undefined') {
+                hapticManager.adaptiveSuccess(selectedCount / this.allWords.length);
+            }
+        }
+        
+        this.updateSaveButton();
+        console.log(`Selected ${selectedCount} words by length (${minLength}-${maxLength} chars)`);
     }
 }
 
