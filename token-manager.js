@@ -47,7 +47,7 @@ class TokenManager {
 
         // Заголовок
         const title = document.createElement('h3');
-        title.textContent = 'Налаштування OCR';
+        title.textContent = 'Token Settings';
         title.style.cssText = `
             margin: 0 0 var(--space-lg) 0;
             font-size: var(--font-24);
@@ -67,7 +67,7 @@ class TokenManager {
         // Кнопка "Видалити поточний ключ" (показуємо тільки якщо є ключ)
         const removeBtn = document.createElement('button');
         removeBtn.className = 'settings-option danger';
-        removeBtn.textContent = 'Видалити поточний ключ';
+        removeBtn.textContent = 'Delete current token';
         
         const hasToken = this.hasApiKey();
         if (!hasToken) {
@@ -77,7 +77,7 @@ class TokenManager {
         // Кнопка "Назад" (внизу)
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'settings-option';
-        cancelBtn.textContent = 'Назад';
+        cancelBtn.textContent = 'Back';
 
         // Обробники подій
         backBtn.addEventListener('click', () => {
@@ -136,7 +136,7 @@ class TokenManager {
 
         const hasToken = this.hasApiKey();
         const statusIcon = hasToken ? '✅' : '❌';
-        const statusText = hasToken ? 'API ключ встановлено' : 'API ключ відсутній';
+        const statusText = hasToken ? 'API key set' : 'API key missing';
         const statusColor = hasToken ? 'var(--black)' : 'var(--dark)';
 
         statusContainer.innerHTML = `
@@ -179,7 +179,7 @@ class TokenManager {
 
             // Отримуємо поточний ключ для показу в placeholder
             const currentKey = this.getCurrentApiKey();
-            const placeholder = currentKey ? 'Введіть новий API ключ (замінить поточний)' : 'Введіть ваш OpenAI API ключ';
+            const placeholder = currentKey ? 'Enter new API key (will replace current)' : 'Enter your OpenAI API key';
 
             // Запитуємо новий ключ
             const newKey = prompt(placeholder);
@@ -193,7 +193,7 @@ class TokenManager {
 
             // Валідуємо формат ключа
             if (!this.validateApiKeyFormat(trimmedKey)) {
-                this.showNotification('Невірний формат API ключа. Ключ має починатися з "sk-"', 'error');
+                this.showNotification('Invalid API key format. Key must start with "sk-"', 'error');
                 return;
             }
 
@@ -202,24 +202,24 @@ class TokenManager {
             
             console.log('API ключ збережено');
             
-            const message = currentKey ? 'API ключ замінено' : 'API ключ додано';
+            const message = currentKey ? 'API key replaced' : 'API key added';
             this.showNotification(message, 'success');
 
         } catch (error) {
             console.error('Помилка додавання ключа:', error);
-            this.showNotification('Помилка збереження ключа', 'error');
+            this.showNotification('Error saving key', 'error');
         }
     }
 
     async removeCurrentToken() {
         try {
             if (!this.hasApiKey()) {
-                this.showNotification('API ключ відсутній', 'error');
+                this.showNotification('API key missing', 'error');
                 return;
             }
 
             // Підтвердження видалення
-            const confirmed = confirm('Ви впевнені, що хочете видалити поточний API ключ?');
+            const confirmed = confirm('Are you sure you want to delete the current API key?');
             
             if (!confirmed) {
                 return;
@@ -233,7 +233,7 @@ class TokenManager {
 
         } catch (error) {
             console.error('Помилка видалення ключа:', error);
-            this.showNotification('Помилка видалення ключа', 'error');
+            this.showNotification('Error deleting key', 'error');
         }
     }
 
@@ -307,7 +307,7 @@ class TokenManager {
         console.log('Автоматичне відкриття налаштувань токенів з OCR...');
         
         // Показуємо повідомлення
-        this.showNotification('Для OCR потрібен API ключ. Додайте ключ в налаштуваннях.', 'error');
+        this.showNotification('API key required for OCR. Add key in settings.', 'error');
         
         // Відкриваємо налаштування токенів через невелику затримку
         setTimeout(() => {
