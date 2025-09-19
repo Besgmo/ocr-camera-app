@@ -162,13 +162,7 @@ class PWAThemeManager {
 // PWA Manager - управління Progressive Web App функціональністю
 class PWAManager {
     constructor() {
-        this.deferredPrompt = null;
-        this.installPrompt = null;
-        this.installBtn = null;
-        this.dismissBtn = null;
-        this.isInstalled = false;
         this.themeManager = new PWAThemeManager();
-        
         this.init();
     }
 
@@ -177,7 +171,6 @@ class PWAManager {
         
         this.checkPWAMode();
         this.registerServiceWorker();
-        this.setupInstallPrompt();
         this.handleShortcuts();
         
         console.log('PWAManager ready!');
@@ -188,11 +181,9 @@ class PWAManager {
             window.navigator.standalone === true) {
             console.log('Running as PWA');
             document.body.classList.add('pwa-mode');
-            this.isInstalled = true;
         } else {
             console.log('Running in browser');
             document.body.classList.add('browser-mode');
-            this.isInstalled = false;
         }
     }
 
@@ -227,91 +218,6 @@ class PWAManager {
         }
     }
 
-    setupInstallPrompt() {
-        this.installPrompt = document.getElementById('pwa-install-prompt');
-        this.installBtn = document.getElementById('pwa-install-btn');
-        this.dismissBtn = document.getElementById('pwa-dismiss-btn');
-
-        if (!this.installPrompt || !this.installBtn || !this.dismissBtn) {
-            console.warn('Install prompt elements not found, creating them...');
-            this.createInstallPrompt();
-        }
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('PWA install prompt available');
-            e.preventDefault();
-            this.deferredPrompt = e;
-            
-            if (!this.isInstalled) {
-                this.showInstallPrompt();
-            }
-        });
-
-        if (this.installBtn && this.dismissBtn) {
-            this.installBtn.addEventListener('click', () => this.handleInstallClick());
-            this.dismissBtn.addEventListener('click', () => this.hideInstallPrompt());
-        }
-
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
-            this.hideInstallPrompt();
-            this.isInstalled = true;
-            this.showNotification('App installed successfully!', 'success');
-        });
-    }
-
-    createInstallPrompt() {
-        if (!document.getElementById('pwa-install-prompt')) {
-            const promptHTML = `
-                <div id="pwa-install-prompt" class="pwa-install-prompt">
-                    <div>Install Words graber for better experience</div>
-                    <button id="pwa-install-btn" class="btn btn-primary">Install</button>
-                    <button id="pwa-dismiss-btn" class="btn btn-secondary">Later</button>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', promptHTML);
-            
-            this.installPrompt = document.getElementById('pwa-install-prompt');
-            this.installBtn = document.getElementById('pwa-install-btn');
-            this.dismissBtn = document.getElementById('pwa-dismiss-btn');
-        }
-    }
-
-    showInstallPrompt() {
-        if (this.installPrompt) {
-            this.installPrompt.classList.add('show');
-        }
-    }
-
-    hideInstallPrompt() {
-        if (this.installPrompt) {
-            this.installPrompt.classList.remove('show');
-        }
-    }
-
-    async handleInstallClick() {
-        if (!this.deferredPrompt) {
-            console.log('No deferred prompt available');
-            return;
-        }
-
-        try {
-            this.deferredPrompt.prompt();
-            const { outcome } = await this.deferredPrompt.userChoice;
-            
-            console.log(`User response to install prompt: ${outcome}`);
-            
-            if (outcome === 'accepted') {
-                this.showNotification('Installing app...', 'info');
-            }
-            
-            this.deferredPrompt = null;
-            this.hideInstallPrompt();
-        } catch (error) {
-            console.error('Install prompt error:', error);
-        }
-    }
-
     handleShortcuts() {
         const urlParams = new URLSearchParams(window.location.search);
         const action = urlParams.get('action');
@@ -330,11 +236,11 @@ class PWAManager {
 
     showUpdateNotification() {
         const updateNotification = document.createElement('div');
-        updateNotification.className = 'notification update';
+        updateNotification.className = 'notification info';
         updateNotification.innerHTML = `
             <div>New version available!</div>
-            <button class="btn btn-primary" onclick="location.reload()">Update</button>
-            <button class="btn btn-secondary" onclick="this.parentElement.remove()">Later</button>
+            <button onclick="location.reload()" style="margin-left: 8px; padding: 4px 8px; background: white; color: #007AFF; border: none; border-radius: 4px;">Update</button>
+            <button onclick="this.parentElement.remove()" style="margin-left: 4px; padding: 4px 8px; background: transparent; color: white; border: 1px solid white; border-radius: 4px;">Later</button>
         `;
         
         document.body.appendChild(updateNotification);
@@ -477,7 +383,6 @@ class PWAManager {
         const features = {
             serviceWorker: 'serviceWorker' in navigator,
             manifest: 'manifest' in document.createElement('link'),
-            installPrompt: 'BeforeInstallPromptEvent' in window,
             backgroundSync: 'serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype,
             pushNotifications: 'serviceWorker' in navigator && 'PushManager' in window,
             webShare: 'share' in navigator,
@@ -509,27 +414,18 @@ class PWAManager {
         this.themeManager.removeThemeChangeListener(callback);
     }
 
-    // Метод для перевірки чи PWA встановлено
-    isPWAInstalled() {
-        return this.isInstalled;
-    }
-
-    // Метод для програмного показу install prompt
-    showInstall() {
-        if (this.deferredPrompt) {
-            this.showInstallPrompt();
-        } else {
-            console.log('Install prompt not available');
-        }
+    // Метод для перевірки чи PWA запущено
+    isPWAMode() {
+        return window.matchMedia('(display-mode: standalone)').matches || 
+               window.navigator.standalone === true;
     }
 
     // Метод для отримання інформації про PWA
     getPWAInfo() {
         return {
-            isInstalled: this.isInstalled,
+            isPWAMode: this.isPWAMode(),
             currentTheme: this.getCurrentTheme(),
-            features: this.checkFeatureSupport(),
-            hasInstallPrompt: !!this.deferredPrompt
+            features: this.checkFeatureSupport()
         };
     }
 }
