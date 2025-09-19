@@ -9,13 +9,15 @@
     <meta name="description" content="OCR-based dictionary app with camera text recognition">
     <meta name="theme-color" content="#01F55F">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="OCR Dict">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Words graber">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Words graber">
     
-    <!-- Apple Touch Icons -->
+    <!-- Apple Touch Icons - Light Theme -->
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180x180.png">
     <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167x167.png">
     <link rel="apple-touch-icon" sizes="144x144" href="icons/apple-touch-icon-144x144.png">
     <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120x120.png">
     <link rel="apple-touch-icon" sizes="114x114" href="icons/apple-touch-icon-114x114.png">
@@ -24,10 +26,45 @@
     <link rel="apple-touch-icon" sizes="60x60" href="icons/apple-touch-icon-60x60.png">
     <link rel="apple-touch-icon" sizes="57x57" href="icons/apple-touch-icon-57x57.png">
     
-    <!-- Favicon -->
+    <!-- Apple Touch Icons - Dark Theme -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180x180-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152x152-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167x167-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="144x144" href="icons/apple-touch-icon-144x144-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120x120-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="114x114" href="icons/apple-touch-icon-114x114-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="76x76" href="icons/apple-touch-icon-76x76-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="72x72" href="icons/apple-touch-icon-72x72-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="60x60" href="icons/apple-touch-icon-60x60-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="57x57" href="icons/apple-touch-icon-57x57-dark.png" media="(prefers-color-scheme: dark)">
+    
+    <!-- Favicon - Light Theme -->
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="shortcut icon" href="favicon.ico">
+    
+    <!-- Favicon - Dark Theme -->
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32-dark.png" media="(prefers-color-scheme: dark)">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16-dark.png" media="(prefers-color-scheme: dark)">
+    
+    <!-- Startup Images for iPhone/iPad -->
+    <!-- iPhone X, XS, 11 Pro -->
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-x-splash.png" 
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-x-splash-dark.png" 
+          media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
+    
+    <!-- iPhone XR, 11 -->
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-xr-splash.png"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-xr-splash-dark.png"
+          media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait) and (prefers-color-scheme: dark)">
+    
+    <!-- iPhone 12, 13, 14 -->
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-12-splash.png"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="icons/splash/iphone-12-splash-dark.png"
+          media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait) and (prefers-color-scheme: dark)">
     
     <!-- Web App Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -81,10 +118,56 @@
         .pwa-install-prompt button {
             margin: var(--space-sm) var(--space-sm) 0 0;
         }
+        
+        /* Theme-based notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1001;
+            max-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.info {
+            background: #007AFF;
+        }
+        
+        .notification.success {
+            background: #01F55F;
+            color: black;
+        }
+        
+        .notification.warning {
+            background: #FF9500;
+        }
+        
+        .notification.error {
+            background: #FF3B30;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
     </style>
 </head>
 <body>
-
+    <!-- PWA Install Prompt -->
+    <div id="pwa-install-prompt" class="pwa-install-prompt">
+        <div>Install Words graber for better experience</div>
+        <button id="pwa-install-btn" class="btn btn-primary">Install</button>
+        <button id="pwa-dismiss-btn" class="btn btn-secondary">Later</button>
+    </div>
 
     <!-- Sticky header -->
     <div id="dictionary-header" class="dictionary-header">
@@ -156,7 +239,6 @@
     <script src="ocr.js"></script>
     <script src="text.js"></script>
     <script src="camera-words.js"></script>
-    <script src="haptic-feedback.js"></script>
+    <script src="utils.js"></script>
 </body>
 </html>
-
