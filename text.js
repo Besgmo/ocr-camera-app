@@ -1,6 +1,6 @@
 console.log('=== text.js LOADED ===');
 
-// Text Processing Module - text conversion to word chips with popup
+// Text Processing Module - text conversion to word chips with popup and translation management
 class TextProcessor {
     constructor() {
         this.selectedWords = new Set();
@@ -9,6 +9,7 @@ class TextProcessor {
         this.popupChipsContainer = null;
         this.popupSaveBtn = null;
         this.popupBackBtn = null;
+        this.translationInProgress = false;
         
         this.init();
     }
@@ -147,21 +148,11 @@ class TextProcessor {
             this.selectedWords.delete(word);
             chipElement.classList.remove('selected');
             console.log('Deselected:', word);
-            
-            // М'яка вібрація при відміні вибору
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.customVibration('light', 20);
-            }
         } else {
             // Add to selected
             this.selectedWords.add(word);
             chipElement.classList.add('selected');
             console.log('Added to selected:', word);
-            
-            // Вібрація при виборі слова
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.wordSelected();
-            }
         }
         
         this.updateSaveButton();
@@ -220,22 +211,8 @@ class TextProcessor {
             if (existing > 0) message += `${existing} words were already in dictionary. `;
             if (errors > 0) message += `${errors} errors while adding.`;
             
-            // Вібрація залежно від результату
-            if (typeof hapticManager !== 'undefined') {
-                if (added > 0) {
-                    // Адаптивна вібрація залежно від кількості доданих слів
-                    hapticManager.wordsAdded(added);
-                } else if (existing > 0 && errors === 0) {
-                    // М'яка вібрація для існуючих слів (не помилка)
-                    hapticManager.select();
-                } else if (errors > 0) {
-                    // Помилка при додаванні
-                    hapticManager.error();
-                }
-            }
-            
             // Use unified message display function
-            this.showNotification(message || 'Words processed', added > 0 || existing > 0 ? 'success' : 'error');
+            this.showNotification(message || 'Words processed', 'success');
             
             // Close popup and stay on page
             this.closePopup();
@@ -245,19 +222,14 @@ class TextProcessor {
                 flashcardsManager.refresh();
             }
             
-            // Automatically translate new words in background
+            // Start translation for all words that need it (including new ones)
             if (added > 0) {
-                this.backgroundTranslateNewWords(selectedWordsArray);
+                setTimeout(() => this.translateAllWords(), 1000);
             }
             
         } catch (error) {
             console.error('Error adding words:', error);
             this.showNotification('Error while saving words', 'error');
-            
-            // Вібрація помилки
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.error();
-            }
         }
     }
 
@@ -276,97 +248,242 @@ class TextProcessor {
         }
     }
 
-    async backgroundTranslateNewWords(newWords) {
-        console.log('Background translation of new words:', newWords);
+    // ======== TRANSLATION FUNCTIONS ========
+
+    async ensureApiKey() {
+        // Use tokenManager for API key management
+        if (typeof tokenManager === 'undefined') {
+            throw new Error("Token Manager unavailable");
+        }
+
+        if (!tokenManager.isApiKeyAvailable()) {
+            this.updateTranslationStatus('API key required. Open token settings.');
+            
+            // Auto-open token settings
+            setTimeout(() => {
+                if (typeof tokenManager !== 'undefined') {
+                    tokenManager.showTokenSettings();
+                }
+            }, 1000);
+            
+            throw new Error("API key not set");
+        }
+
+        return tokenManager.getApiKey();
+    }
+
+    async translateWord(word) {
+        console.log('Translating word through GPT-3.5-turbo:', word);
         
         try {
-            let translatedCount = 0;
+            // Handle words that should remain unchanged
+            const untranslateableWords = ['the', 'a', 'an', 'IT', 'USB', 'WiFi', 'GPS', 'HTML', 'CSS', 'JS', 'API', 'URL', 'PDF'];
+            if (untranslateableWords.includes(word.toUpperCase()) || untranslateableWords.includes(word.toLowerCase())) {
+                console.log(`Keeping word unchanged: ${word}`);
+                return word;
+            }
+
+            const apiKey = await this.ensureApiKey();
             
-            for (let i = 0; i < newWords.length; i++) {
-                const word = newWords[i];
+            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {
+                            role: "user",
+                            content: `Translate the English word "${word}" to Ukrainian. Important rules:
+- If it's an article (a, an, the), keep it unchanged
+- If it's a technical term, abbreviation, or proper noun that doesn't have a direct Ukrainian equivalent, keep it unchanged
+- Otherwise provide only the Ukrainian translation
+- Respond with just the result, no explanations`
+                        }
+                    ],
+                    max_tokens: 100,
+                    temperature: 0.1
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                console.error("Translation API Error:", errorData);
+
+                if (response.status === 401) {
+                    this.updateTranslationStatus('Invalid API key. Update key in settings.');
+                    setTimeout(() => {
+                        if (typeof tokenManager !== 'undefined') {
+                            tokenManager.showTokenSettings();
+                        }
+                    }, 2000);
+                    throw new Error("Invalid or expired API key");
+                }
+
+                const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
+                throw new Error(`Translation API error: ${errorMessage}`);
+            }
+
+            const data = await response.json();
+            const translation = data.choices?.[0]?.message?.content?.trim() || "";
+            
+            if (!translation) {
+                throw new Error("Empty translation response");
+            }
+
+            // Basic validation - check for obvious errors
+            if (translation.includes('MYMEMORY') || 
+                translation.includes('API LIMIT') || 
+                translation.includes('ERROR') ||
+                translation.toLowerCase().includes('sorry') ||
+                translation.toLowerCase().includes('cannot') ||
+                !translation.trim()) {
+                console.log('Invalid translation response:', translation);
+                throw new Error('Poor quality translation from API');
+            }
+
+            // Check for completely nonsensical translations
+            if (translation.length > word.length * 5) {
+                console.log('Translation too long, likely explanation rather than translation:', translation);
+                throw new Error('Poor quality translation from API');
+            }
+
+            console.log(`GPT-3.5-turbo translation: ${word} -> ${translation}`);
+            return translation;
+            
+        } catch (error) {
+            console.error('Translation error for word', word, ':', error.message);
+            throw new Error(`Failed to translate word "${word}": ${error.message}`);
+        }
+    }
+
+    // Main method for translating all untranslated words
+    async translateAllWords() {
+        if (this.translationInProgress) {
+            console.log('Translation already in progress...');
+            return;
+        }
+
+        try {
+            this.translationInProgress = true;
+            console.log('Starting translation for all untranslated words...');
+            
+            const allWords = await databaseManager.getAllWords();
+            const wordsToTranslate = allWords.filter(word => 
+                !word.translation || 
+                !word.translation.trim() || 
+                word.translation.startsWith('[translation:') ||
+                word.translation === 'Translation error' ||
+                word.translation === 'Translation unavailable'
+            );
+            
+            console.log(`Found ${wordsToTranslate.length} words without translation`);
+            
+            if (wordsToTranslate.length > 0) {
+                this.updateTranslationStatus(`Background translation: ${wordsToTranslate.length} words...`);
                 
-                try {
-                    // Get word from database to check if translation is needed
-                    const wordFromDB = await databaseManager.getWordByText(word);
+                for (let i = 0; i < wordsToTranslate.length; i++) {
+                    const wordRecord = wordsToTranslate[i];
                     
-                    if (wordFromDB && (!wordFromDB.translation || wordFromDB.translation === 'Translation unavailable')) {
-                        const translation = await this.translateWord(word);
+                    this.updateTranslationStatus(`Background translation: ${wordRecord.word} (${i + 1}/${wordsToTranslate.length})`);
+                    
+                    try {
+                        const translation = await this.translateWord(wordRecord.word);
                         
-                        // Update translation in database
-                        await databaseManager.updateWord(wordFromDB.id, {
+                        await databaseManager.updateWord(wordRecord.id, {
                             translation: translation
                         });
                         
-                        console.log(`Background translation completed: ${word} -> ${translation}`);
-                        translatedCount++;
+                        console.log(`Background translation: ${wordRecord.word} -> ${translation}`);
                         
                         // Update dictionary display after each translation
                         if (typeof flashcardsManager !== 'undefined') {
                             flashcardsManager.refresh();
                         }
+                        
+                    } catch (error) {
+                        console.error('Background translation error:', wordRecord.word, error);
+                        await databaseManager.updateWord(wordRecord.id, {
+                            translation: 'Translation error'
+                        });
                     }
                     
-                } catch (error) {
-                    console.error('Background translation error for word:', word, error);
+                    // Delay between requests
+                    if (i < wordsToTranslate.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 400));
+                    }
                 }
                 
-                // Delay between requests
-                if (i < newWords.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                }
-            }
-            
-            // Вібрація при завершенні перекладу
-            if (typeof hapticManager !== 'undefined' && translatedCount > 0) {
-                hapticManager.translationComplete();
+                this.updateTranslationStatus('Background translation completed!');
+                setTimeout(() => this.hideTranslationStatus(), 2000);
             }
             
         } catch (error) {
-            console.error('Background translation error:', error);
+            console.error('Auto translation error:', error);
+            this.hideTranslationStatus();
+        } finally {
+            this.translationInProgress = false;
         }
     }
 
-    async translateWord(word) {
-        console.log('Translating word through MyMemory API:', word);
-        
+    // Method for forced translation of specific word
+    async retranslateWord(wordId) {
         try {
-            const encodedWord = encodeURIComponent(word.trim());
-            const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=en|uk&de=your.email@example.com`;
+            // Get word from database
+            const allWords = await databaseManager.getAllWords();
+            const word = allWords.find(w => w.id === wordId);
             
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                }
+            if (!word) {
+                throw new Error('Word not found');
+            }
+
+            this.updateTranslationStatus(`Translating: ${word.word}...`);
+            
+            const translation = await this.translateWord(word.word);
+            
+            await databaseManager.updateWord(wordId, {
+                translation: translation
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP Error: ${response.status}`);
+            console.log(`Translation updated: ${word.word} -> ${translation}`);
+            
+            this.hideTranslationStatus();
+            
+            // Update dictionary display
+            if (typeof flashcardsManager !== 'undefined') {
+                flashcardsManager.refresh();
             }
             
-            const data = await response.json();
-            
-            if (data.responseStatus === 200 && data.responseData) {
-                const translation = data.responseData.translatedText;
-                
-                if (translation && 
-                    translation.trim().length > 0 &&
-                    translation.toLowerCase() !== word.toLowerCase() &&
-                    !translation.includes('MYMEMORY WARNING') &&
-                    !translation.includes('API LIMIT EXCEEDED') &&
-                    !translation.includes('NO QUERY SPECIFIED')) {
-                    
-                    console.log(`API translation: ${word} -> ${translation}`);
-                    return translation.trim();
-                }
-            }
-            
-            throw new Error('Poor quality translation');
+            return translation;
             
         } catch (error) {
-            console.error('Translation error:', word, error);
-            return 'Translation error';
+            console.error('Error translating word:', error);
+            this.hideTranslationStatus();
+            throw error;
         }
+    }
+
+    updateTranslationStatus(message) {
+        // Try to update status in flashcards manager
+        if (typeof flashcardsManager !== 'undefined' && flashcardsManager.updateTranslationStatus) {
+            flashcardsManager.updateTranslationStatus(message);
+        } else {
+            console.log('Translation status:', message);
+        }
+    }
+
+    hideTranslationStatus() {
+        // Try to hide status in flashcards manager
+        if (typeof flashcardsManager !== 'undefined' && flashcardsManager.hideTranslationStatus) {
+            flashcardsManager.hideTranslationStatus();
+        }
+    }
+
+    // Check if translation is in progress
+    isTranslating() {
+        return this.translationInProgress;
     }
 
     // ======== UNIFIED MESSAGE DISPLAY FUNCTIONS ========
@@ -378,11 +495,6 @@ class TextProcessor {
         notification.textContent = message;
         
         document.body.appendChild(notification);
-        
-        // Вібрація для повідомлення
-        if (typeof hapticManager !== 'undefined') {
-            hapticManager.notificationVibration(type);
-        }
         
         // Remove after 3 seconds
         setTimeout(() => {
@@ -412,77 +524,6 @@ class TextProcessor {
 
     getSelectedWords() {
         return Array.from(this.selectedWords);
-    }
-
-    // ======== ДОДАТКОВІ МЕТОДИ ДЛЯ HAPTIC FEEDBACK ========
-
-    // Метод для масового вибору слів (наприклад, "Select All")
-    selectAllWords() {
-        if (!this.popupChipsContainer) return;
-        
-        const chips = this.popupChipsContainer.querySelectorAll('.word-chip');
-        let selectedCount = 0;
-        
-        chips.forEach(chip => {
-            const word = chip.dataset.word;
-            if (word && !this.selectedWords.has(word)) {
-                this.selectedWords.add(word);
-                chip.classList.add('selected');
-                selectedCount++;
-            }
-        });
-        
-        if (selectedCount > 0) {
-            // Прогресивна вібрація для масового вибору
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.sequentialVibration(selectedCount, this.allWords.length);
-            }
-        }
-        
-        this.updateSaveButton();
-        console.log(`Selected all ${selectedCount} words`);
-    }
-
-    // Метод для скасування всіх виборів
-    deselectAllWords() {
-        const previousCount = this.selectedWords.size;
-        this.clearSelection();
-        
-        if (previousCount > 0) {
-            // М'яка вібрація при скасуванні всіх виборів
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.customVibration('light', 30);
-            }
-        }
-        
-        console.log(`Deselected all words (was ${previousCount})`);
-    }
-
-    // Швидкий вибір слів за довжиною
-    selectWordsByLength(minLength = 3, maxLength = 15) {
-        if (!this.popupChipsContainer) return;
-        
-        const chips = this.popupChipsContainer.querySelectorAll('.word-chip');
-        let selectedCount = 0;
-        
-        chips.forEach(chip => {
-            const word = chip.dataset.word;
-            if (word && word.length >= minLength && word.length <= maxLength && !this.selectedWords.has(word)) {
-                this.selectedWords.add(word);
-                chip.classList.add('selected');
-                selectedCount++;
-            }
-        });
-        
-        if (selectedCount > 0) {
-            // Адаптивна вібрація залежно від кількості вибраних слів
-            if (typeof hapticManager !== 'undefined') {
-                hapticManager.adaptiveSuccess(selectedCount / this.allWords.length);
-            }
-        }
-        
-        this.updateSaveButton();
-        console.log(`Selected ${selectedCount} words by length (${minLength}-${maxLength} chars)`);
     }
 }
 
