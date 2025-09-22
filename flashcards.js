@@ -1,9 +1,8 @@
 console.log('=== flashcards.js LOADED ===');
 
-// Dictionary Module - simplified without HTML markup
+// Dictionary Module - UI management only, translation delegated to textProcessor
 class DictionaryManager {
     constructor() {
-        this.translationInProgress = false;
         this.init();
     }
 
@@ -26,7 +25,7 @@ class DictionaryManager {
         
         // Launch initial processes
         this.updateWordsCount();
-        this.autoTranslateAllWords();
+        this.startAutoTranslation();
         
         console.log('Dictionary configured');
     }
@@ -191,120 +190,41 @@ class DictionaryManager {
         this.showNotification(message, type);
     }
 
-    // ======== TRANSLATION FUNCTIONS ========
+    // ======== TRANSLATION DELEGATION ========
 
-    async autoTranslateAllWords() {
-        if (this.translationInProgress) {
-            console.log('Translation already in progress...');
-            return;
-        }
-
-        try {
-            this.translationInProgress = true;
-            console.log('Automatic translation check...');
-            
-            const allWords = await databaseManager.getAllWords();
-            const wordsToTranslate = allWords.filter(word => 
-                !word.translation || 
-                !word.translation.trim() || 
-                word.translation.startsWith('[translation:') ||
-                word.translation === 'Translation error' ||
-                word.translation === 'Translation unavailable'
-            );
-            
-            console.log(`Found ${wordsToTranslate.length} words without translation`);
-            
-            if (wordsToTranslate.length > 0) {
-                this.updateTranslationStatus(`Background translation: ${wordsToTranslate.length} words...`);
-                
-                for (let i = 0; i < wordsToTranslate.length; i++) {
-                    const word = wordsToTranslate[i];
-                    
-                    this.updateTranslationStatus(`Background translation: ${word.word} (${i + 1}/${wordsToTranslate.length})`);
-                    
-                    try {
-                        const translation = await this.translateWord(word.word);
-                        
-                        await databaseManager.updateWord(word.id, {
-                            translation: translation
-                        });
-                        
-                        console.log(`Background translation: ${word.word} -> ${translation}`);
-                        
-                        // Update dictionary display after each translation
-                        this.updateWordsCount();
-                        this.showAllWords();
-                        
-                    } catch (error) {
-                        console.error('Background translation error:', word.word, error);
-                        await databaseManager.updateWord(word.id, {
-                            translation: 'Translation error'
-                        });
-                    }
-                    
-                    // Delay between requests
-                    if (i < wordsToTranslate.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 400));
-                    }
-                }
-                
-                this.updateTranslationStatus('Background translation completed!');
-                setTimeout(() => this.hideTranslationStatus(), 2000);
-            }
-            
-        } catch (error) {
-            console.error('Auto translation error:', error);
-            this.hideTranslationStatus();
-        } finally {
-            this.translationInProgress = false;
+    // Delegate translation to textProcessor
+    startAutoTranslation() {
+        console.log('Starting auto translation...');
+        
+        // Delegate translation to textProcessor
+        if (typeof textProcessor !== 'undefined') {
+            setTimeout(() => textProcessor.translateAllWords(), 1000);
+        } else {
+            console.error('TextProcessor not available');
         }
     }
 
-    async translateWord(word) {
-        console.log('Translating word through MyMemory API:', word);
-        
+    // Method for forced translation of specific word (delegate to textProcessor)
+    async retranslateWord(wordId) {
         try {
-            const encodedWord = encodeURIComponent(word.trim());
-            const url = `https://api.mymemory.translated.net/get?q=${encodedWord}&langpair=en|uk&de=your.email@example.com`;
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.responseStatus === 200 && data.responseData) {
-                const translation = data.responseData.translatedText;
-                
-                if (translation && 
-                    translation.trim().length > 0 &&
-                    translation.toLowerCase() !== word.toLowerCase() &&
-                    !translation.includes('MYMEMORY WARNING') &&
-                    !translation.includes('API LIMIT EXCEEDED') &&
-                    !translation.includes('NO QUERY SPECIFIED')) {
-                    
-                    console.log(`MyMemory API success: ${word} -> ${translation}`);
-                    return translation.trim();
-                } else {
-                    console.log('Poor quality translation:', translation);
-                    throw new Error('Poor quality translation from API');
-                }
+            if (typeof textProcessor !== 'undefined') {
+                return await textProcessor.retranslateWord(wordId);
             } else {
-                console.log('API returned error:', data);
-                throw new Error(`API Error: ${data.responseStatus || 'Unknown'}`);
+                throw new Error('TextProcessor not available');
             }
-            
         } catch (error) {
-            console.error('MyMemory API error for word', word, ':', error.message);
-            throw new Error(`Failed to translate word "${word}": ${error.message}`);
+            console.error('Error translating word:', error);
+            this.showErrorMessage('Translation error');
+            throw error;
         }
+    }
+
+    // Check if translation is in progress (delegate to textProcessor)
+    isTranslating() {
+        if (typeof textProcessor !== 'undefined') {
+            return textProcessor.isTranslating();
+        }
+        return false;
     }
 
     async updateWordsCount() {
@@ -429,6 +349,7 @@ class DictionaryManager {
         }
     }
 
+    // Translation status display methods (for textProcessor to use)
     updateTranslationStatus(message) {
         const statusEl = document.getElementById('translation-status');
         if (statusEl) {
@@ -445,9 +366,8 @@ class DictionaryManager {
         }
     }
 
-    // ======== DICTIONARY IMPORT ========
+    // ======== DICTIONARY IMPORT/EXPORT ========
 
-    // Method for importing dictionary
     async importDictionary() {
         try {
             // Create hidden file input
@@ -598,16 +518,50 @@ class DictionaryManager {
             // Update display
             this.refresh();
 
-            // Launch background translation for new words
+            // Launch background translation for new words via textProcessor
             const addedWords = results.filter(r => r.status === 'added');
-            if (addedWords.length > 0) {
-                setTimeout(() => this.autoTranslateAllWords(), 1000);
+            if (addedWords.length > 0 && typeof textProcessor !== 'undefined') {
+                setTimeout(() => textProcessor.translateAllWords(), 1000);
             }
 
             return results;
 
         } catch (error) {
             console.error('Error processing imported words:', error);
+            throw error;
+        }
+    }
+
+    async exportDictionary() {
+        try {
+            const allWords = await databaseManager.getAllWords();
+            
+            if (allWords.length === 0) {
+                this.showErrorMessage('Dictionary is empty');
+                return false;
+            }
+            
+            const dataStr = JSON.stringify(allWords, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `dictionary_${new Date().toISOString().split('T')[0]}.json`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(url);
+            
+            this.showSuccessMessage(`Dictionary exported (${allWords.length} words)`);
+            console.log('Dictionary exported');
+            return true;
+            
+        } catch (error) {
+            console.error('Error exporting dictionary:', error);
+            this.showErrorMessage('Error exporting dictionary');
             throw error;
         }
     }
@@ -639,9 +593,9 @@ class DictionaryManager {
             // Update display
             this.refresh();
             
-            // Launch background translation for new words
-            if (added > 0) {
-                setTimeout(() => this.autoTranslateAllWords(), 1000);
+            // Launch background translation for new words via textProcessor
+            if (added > 0 && typeof textProcessor !== 'undefined') {
+                setTimeout(() => textProcessor.translateAllWords(), 1000);
             }
             
             return results;
@@ -717,76 +671,6 @@ class DictionaryManager {
                 withTranslation: 0
             };
         }
-    }
-
-    // Method for forced translation of specific word
-    async retranslateWord(wordId) {
-        try {
-            const word = await databaseManager.getWordById(wordId);
-            if (!word) {
-                throw new Error('Word not found');
-            }
-
-            this.updateTranslationStatus(`Translating: ${word.word}...`);
-            
-            const translation = await this.translateWord(word.word);
-            
-            await databaseManager.updateWord(wordId, {
-                translation: translation
-            });
-            
-            console.log(`Translation updated: ${word.word} -> ${translation}`);
-            
-            this.hideTranslationStatus();
-            this.refresh();
-            
-            return translation;
-            
-        } catch (error) {
-            console.error('Error translating word:', error);
-            this.hideTranslationStatus();
-            throw error;
-        }
-    }
-
-    // Method for exporting dictionary
-    async exportDictionary() {
-        try {
-            const allWords = await databaseManager.getAllWords();
-            
-            if (allWords.length === 0) {
-                this.showErrorMessage('Dictionary is empty');
-                return false;
-            }
-            
-            const dataStr = JSON.stringify(allWords, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `dictionary_${new Date().toISOString().split('T')[0]}.json`;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            URL.revokeObjectURL(url);
-            
-            this.showSuccessMessage(`Dictionary exported (${allWords.length} words)`);
-            console.log('Dictionary exported');
-            return true;
-            
-        } catch (error) {
-            console.error('Error exporting dictionary:', error);
-            this.showErrorMessage('Error exporting dictionary');
-            throw error;
-        }
-    }
-
-    // Method for checking translation state
-    isTranslating() {
-        return this.translationInProgress;
     }
 }
 
